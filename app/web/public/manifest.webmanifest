@@ -1,0 +1,20 @@
+{
+  "name": "Zupply",
+  "short_name": "Zupply",
+  "description": "Pedidos y seguimiento GPS en tiempo real",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f766e",
+  "lang": "es-CO",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

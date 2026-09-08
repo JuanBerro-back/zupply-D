@@ -1,0 +1,30 @@
+import { Link } from 'react-router-dom';
+import { Order } from '../types';
+import { ORDER_STATUS, formatMoney, formatDate } from '../lib/constants';
+
+export default function OrderCard({ order, isSupplier }: { order: Order; isSupplier: boolean }) {
+  const st = ORDER_STATUS[order.status] ?? { label: order.status, color: 'bg-gray-100 text-gray-700' };
+  return (
+    <Link
+      to={`/pedidos/${order.id}`}
+      className="block rounded-lg border bg-white p-4 shadow-sm transition hover:shadow"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-semibold">{order.order_code}</p>
+          <p className="text-sm text-gray-500">
+            {isSupplier ? order.restaurant_name : order.supplier_name}
+          </p>
+        </div>
+        <div className="text-right">
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${st.color}`}>{st.label}</span>
+          <p className="mt-1 font-bold text-brand">{formatMoney(order.total)}</p>
+        </div>
+      </div>
+      <p className="mt-1 text-xs text-gray-400">
+        {formatDate(order.created_at)}
+        {order.items?.length ? ` · ${order.items.length} producto(s)` : ''}
+      </p>
+    </Link>
+  );
+}
