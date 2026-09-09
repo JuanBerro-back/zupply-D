@@ -172,11 +172,15 @@ export interface Delivery {
   plate: string;
   vehicle_lat?: number | null;
   vehicle_lng?: number | null;
+  dest_lat?: number | null;
+  dest_lng?: number | null;
   last_location_update?: string | null;
   imei?: string | null;
   gps_validated?: boolean;
   gps_last_seen?: string | null;
+  driver_id?: number | null;
   driver_name: string;
+  confirmation_code?: string | null;
   restaurant_name: string;
   delivery_address: string;
   status: 'asignado' | 'en_camino' | 'llegando' | 'entregado' | 'fallido';

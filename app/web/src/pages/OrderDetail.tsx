@@ -15,7 +15,9 @@ export default function OrderDetail() {
   const [order, setOrder] = useState<Order | null>(null);
   const [history, setHistory] = useState<{ action: string; new_values: string; created_at: string }[]>([]);
   const [deliveryModal, setDeliveryModal] = useState(false);
-  const [deliveryForm, setDeliveryForm] = useState({ vehicle_id: '', driver_name: '', scheduled_time: '' });
+  const [drivers, setDrivers] = useState<{ id: number; name: string; username: string; phone?: string }[]>([]);
+  const [vehicles, setVehicles] = useState<{ id: number; name: string; plate: string; type: string }[]>([]);
+  const [deliveryForm, setDeliveryForm] = useState({ vehicle_id: '', driver_id: '', scheduled_time: '' });
 
   const isSupplier = user?.role === 'proveedor_admin';
 
@@ -26,6 +28,10 @@ export default function OrderDetail() {
 
   useEffect(() => {
     load();
+    if (isSupplier) {
+      api<{ id: number; name: string; username: string; phone?: string }[]>('/deliveries/drivers').then(setDrivers).catch(() => undefined);
+      api<{ id: number; name: string; plate: string; type: string }[]>('/deliveries/vehicles').then(setVehicles).catch(() => undefined);
+    }
     const socket = getSocket();
     if (!socket) return;
     const onUpdate = (o: Order) => {
@@ -35,7 +41,7 @@ export default function OrderDetail() {
     return () => {
       socket.off('order:updated', onUpdate);
     };
-  }, [id]);
+  }, [id, isSupplier]);
 
   const changeStatus = async (status: string) => {
     try {
@@ -57,12 +63,12 @@ export default function OrderDetail() {
         body: JSON.stringify({
           order_id: order!.id,
           vehicle_id: deliveryForm.vehicle_id ? Number(deliveryForm.vehicle_id) : null,
-          driver_name: deliveryForm.driver_name,
+          driver_id: deliveryForm.driver_id ? Number(deliveryForm.driver_id) : null,
           scheduled_time: deliveryForm.scheduled_time || null,
           items: order!.items.map((i) => ({ product_name: i.name, quantity: i.quantity, unit: i.unit })),
         }),
       });
-      push({ message: 'Entrega creada', at: new Date().toISOString() });
+      push({ message: 'Entrega creada y asignada al domiciliario', at: new Date().toISOString() });
       setDeliveryModal(false);
     } catch (err) {
       alert((err as Error).message);
@@ -164,17 +170,58 @@ export default function OrderDetail() {
       </div>
 
       {deliveryModal && (
-        <Modal title="Crear entrega" onClose={() => setDeliveryModal(false)}>
+        <Modal title="Crear entrega y asignar domiciliario" onClose={() => setDeliveryModal(false)}>
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-sm font-medium">Conductor</label>
-              <input value={deliveryForm.driver_name} onChange={(e) => setDeliveryForm({ ...deliveryForm, driver_name: e.target.value })} className="w-full rounded border px-3 py-2" />
+              <label className="mb-1 block text-sm font-medium">Domiciliario / Repartidor</label>
+              <select
+                value={deliveryForm.driver_id}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, driver_id: e.target.value })}
+                className="w-full rounded border px-3 py-2 text-sm bg-white"
+                required
+              >
+                <option value="">-- Seleccionar domiciliario --</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.username}) {d.phone ? `· ${d.phone}` : ''}
+                  </option>
+                ))}
+              </select>
+              {drivers.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600">No hay domiciliarios activos registrados en el sistema.</p>
+              )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Fecha programada</label>
-              <input type="datetime-local" value={deliveryForm.scheduled_time} onChange={(e) => setDeliveryForm({ ...deliveryForm, scheduled_time: e.target.value })} className="w-full rounded border px-3 py-2" />
+              <label className="mb-1 block text-sm font-medium">Vehículo (opcional)</label>
+              <select
+                value={deliveryForm.vehicle_id}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, vehicle_id: e.target.value })}
+                className="w-full rounded border px-3 py-2 text-sm bg-white"
+              >
+                <option value="">-- Sin vehículo asignado --</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} ({v.plate}) · {v.type}
+                  </option>
+                ))}
+              </select>
             </div>
-            <button onClick={createDelivery} className="w-full rounded bg-brand py-2 text-white">Guardar entrega</button>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Fecha y hora programada</label>
+              <input
+                type="datetime-local"
+                value={deliveryForm.scheduled_time}
+                onChange={(e) => setDeliveryForm({ ...deliveryForm, scheduled_time: e.target.value })}
+                className="w-full rounded border px-3 py-2 text-sm"
+              />
+            </div>
+            <button
+              onClick={createDelivery}
+              disabled={!deliveryForm.driver_id}
+              className="w-full rounded bg-brand py-2 text-white font-medium hover:bg-brand-dark disabled:opacity-50"
+            >
+              Asignar y Notificar Domiciliario
+            </button>
           </div>
         </Modal>
       )}

@@ -77,6 +77,21 @@ router.get('/vehicles', roleRequired('proveedor_admin', 'admin'), async (req, re
   }
 });
 
+router.get('/drivers', roleRequired('proveedor_admin', 'admin'), async (_req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT u.id, u.name, u.username, u.phone
+       FROM users u
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.name = 'domiciliario' AND u.is_active = TRUE
+       ORDER BY u.name`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const user = req.user!;
@@ -104,7 +119,7 @@ router.post('/', roleRequired('proveedor_admin', 'admin'), async (req, res, next
   try {
     const user = req.user!;
     if (!user.supplier_id) return res.status(403).json({ error: 'Solo proveedores crean entregas' });
-    const { order_id, vehicle_id, driver_id, delivery_address, scheduled_time, notes, items } = req.body;
+    const { order_id, vehicle_id, driver_id, delivery_address, scheduled_time, notes, items, dest_lat, dest_lng } = req.body;
     const order = await query(
       'SELECT * FROM orders WHERE id = $1 AND supplier_id = $2',
       [order_id, user.supplier_id]
@@ -114,10 +129,11 @@ router.post('/', roleRequired('proveedor_admin', 'admin'), async (req, res, next
     const confirmationCode = String(Math.floor(1000 + Math.random() * 9000));
     const result = await query(
       `INSERT INTO deliveries (delivery_code, order_id, vehicle_id, driver_id, restaurant_id,
-         delivery_address, scheduled_time, notes, confirmation_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [code, order_id, vehicle_id, driver_id, order.rows[0].restaurant_id,
-       delivery_address ?? order.rows[0].delivery_address, scheduled_time, notes, confirmationCode]
+         delivery_address, scheduled_time, notes, confirmation_code, dest_lat, dest_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [code, order_id, vehicle_id || null, driver_id || null, order.rows[0].restaurant_id,
+       delivery_address ?? order.rows[0].delivery_address, scheduled_time || null, notes, confirmationCode,
+       dest_lat || 7.1250, dest_lng || -73.1190]
     );
     if (Array.isArray(items)) {
       for (const it of items) {
