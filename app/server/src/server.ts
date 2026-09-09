@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import { createApp } from './app';
 import { setIo, registerSocket, emitToUser } from './lib/realtime';
 
+import { initDatabase } from './config/db';
+
 dotenv.config();
 
 const PORT = Number(process.env.PORT) || 4000;
@@ -24,6 +26,7 @@ io.on('connection', (socket) => {
 
 setIo(io);
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`Zupply API corriendo en http://0.0.0.0:${PORT}`);
+  await initDatabase();
 });

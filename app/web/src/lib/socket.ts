@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { getToken } from './api';
 
 let socket: Socket | null = null;
-const SOCKET_ORIGIN = import.meta.env.VITE_API_URL ?? 'http://192.168.1.65:4000';
+const SOCKET_ORIGIN = import.meta.env.VITE_API_URL || undefined;
 
 export function connectSocket(opts: {
   userId?: number | null;
