@@ -56,13 +56,15 @@ function startServer() {
 }
 
 function createWindow() {
+  const iconFile = path.join(__dirname, 'web', 'public', 'icon-512.png');
   const win = new BrowserWindow({
     width: 1280,
     height: 820,
     minWidth: 1024,
     minHeight: 640,
     title: 'Zupply',
-    backgroundColor: '#020617',
+    icon: fs.existsSync(iconFile) ? iconFile : undefined,
+    backgroundColor: '#0284c7',
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
