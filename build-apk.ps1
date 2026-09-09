@@ -1,5 +1,5 @@
 param (
-    [string]$RenderUrl = "https://zupply.onrender.com"
+    [string]$RenderUrl = "https://zupply-d.onrender.com"
 )
 
 $ErrorActionPreference = "Stop"
