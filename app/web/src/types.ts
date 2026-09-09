@@ -7,6 +7,10 @@ export interface User {
   restaurant_id: number | null;
   supplier_id: number | null;
   branch_id: number | null;
+  phone?: string | null;
+  email?: string | null;
+  vehicle_type?: string | null;
+  vehicle_plate?: string | null;
 }
 
 export interface Supplier {
@@ -207,6 +211,7 @@ export interface Vehicle {
   name: string;
   plate: string;
   type: string;
+  driver_id?: number | null;
   driver_name: string;
   status: string;
   current_lat: number | null;

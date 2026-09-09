@@ -6,12 +6,20 @@ import bcrypt from 'bcryptjs';
 const router = Router();
 router.use(authRequired);
 
+// Asegurar columnas de asignación de vehículo en usuarios
+query(`
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(50);
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_plate VARCHAR(50);
+`).catch(() => undefined);
+
 router.get('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req, res, next) => {
   try {
     const user = req.user!;
     const params: unknown[] = [];
     let sql = `SELECT u.id, u.username, u.name, u.email, u.phone, u.is_active, u.last_login,
                       u.created_at, u.supplier_id, u.restaurant_id,
+                      COALESCE(u.vehicle_type, 'moto') AS vehicle_type,
+                      u.vehicle_plate,
                       r.name AS role_name, COALESCE(r.display_name, r.name) AS role_label, r.id AS role_id
                FROM users u
                JOIN roles r ON r.id = u.role_id
@@ -48,7 +56,7 @@ router.get('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req,
 router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req, res, next) => {
   try {
     const user = req.user!;
-    const { username, password, name, email, phone, role_id } = req.body;
+    const { username, password, name, email, phone, role_id, vehicle_type, vehicle_plate } = req.body;
     if (!username || !password || !name || !role_id) {
       return res.status(400).json({ error: 'username, password, name y role_id son requeridos' });
     }
@@ -81,10 +89,10 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
     }
 
     const result = await query(
-      `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, is_active, created_at`,
-      [username.trim(), hash, name.trim(), email ? email.trim() : null, phone ? phone.trim() : null, numericRoleId, restaurantId, supplierId, branchId]
+      `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id, vehicle_type, vehicle_plate)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, vehicle_type, vehicle_plate, is_active, created_at`,
+      [username.trim(), hash, name.trim(), email ? email.trim() : null, phone ? phone.trim() : null, numericRoleId, restaurantId, supplierId, branchId, vehicle_type || 'moto', vehicle_plate || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -96,7 +104,7 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
 router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req, res, next) => {
   try {
     const user = req.user!;
-    const { name, email, phone, is_active, role_id } = req.body;
+    const { name, email, phone, is_active, role_id, vehicle_type, vehicle_plate } = req.body;
     const target = await query('SELECT * FROM users WHERE id = $1', [req.params.id]);
     if (!target.rowCount) return res.status(404).json({ error: 'Usuario no encontrado' });
     const targetUser = target.rows[0];
@@ -125,10 +133,13 @@ router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (r
       `UPDATE users
        SET name = COALESCE($2, name), email = COALESCE($3, email),
            phone = COALESCE($4, phone), is_active = COALESCE($5, is_active),
-           role_id = COALESCE($6, role_id), updated_at = CURRENT_TIMESTAMP
+           role_id = COALESCE($6, role_id),
+           vehicle_type = COALESCE($7, vehicle_type),
+           vehicle_plate = COALESCE($8, vehicle_plate),
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
-       RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, is_active, created_at`,
-      [req.params.id, name, email, phone, is_active, numericRoleId]
+       RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, vehicle_type, vehicle_plate, is_active, created_at`,
+      [req.params.id, name, email, phone, is_active, numericRoleId, vehicle_type, vehicle_plate]
     );
     res.json(result.rows[0]);
   } catch (err) {

@@ -65,12 +65,28 @@ router.get('/my-deliveries', roleRequired('domiciliario'), async (req, res, next
   }
 });
 
-router.get('/vehicles', roleRequired('proveedor_admin', 'admin'), async (req, res, next) => {
+// Asegurar columnas de asignación de vehículos
+query(`
+  ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS driver_id INT;
+  ALTER TABLE vehicles ALTER COLUMN supplier_id DROP NOT NULL;
+`).catch(() => undefined);
+
+router.get('/vehicles', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
   try {
     const user = req.user!;
-    const result = await query('SELECT * FROM vehicles WHERE supplier_id = $1 AND is_active = TRUE ORDER BY name', [
-      user.supplier_id,
-    ]);
+    let sql = `
+      SELECT v.*, u.name AS driver_name, u.phone AS driver_phone, u.username AS driver_username
+      FROM vehicles v
+      LEFT JOIN users u ON u.id = v.driver_id
+      WHERE v.is_active = TRUE
+    `;
+    const params: unknown[] = [];
+    if (user.role === 'proveedor_admin' && user.supplier_id) {
+      params.push(user.supplier_id);
+      sql += ` AND (v.supplier_id = $1 OR v.supplier_id IS NULL)`;
+    }
+    sql += ' ORDER BY v.name';
+    const result = await query(sql, params);
     res.json(result.rows);
   } catch (err) {
     next(err);
@@ -383,14 +399,19 @@ router.patch('/:id/position', async (req, res, next) => {
   }
 });
 
-router.post('/vehicles', roleRequired('proveedor_admin', 'admin'), async (req, res, next) => {
+router.post('/vehicles', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
   try {
     const user = req.user!;
-    const { name, plate, type, driver_name, imei } = req.body;
+    const { name, plate, type, driver_id, imei } = req.body;
+    let driverName = req.body.driver_name || null;
+    if (driver_id) {
+      const u = await query('SELECT name FROM users WHERE id = $1', [driver_id]).catch(() => ({ rows: [] }));
+      if (u.rows[0]) driverName = u.rows[0].name;
+    }
     const result = await query(
-      `INSERT INTO vehicles (supplier_id, name, plate, type, driver_name, imei, gps_validated)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [user.supplier_id, name, plate, type ?? 'moto', driver_name, imei || null, Boolean(imei)]
+      `INSERT INTO vehicles (supplier_id, name, plate, type, driver_id, driver_name, imei, gps_validated)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [user.supplier_id || null, name, plate, type ?? 'moto', driver_id ? Number(driver_id) : null, driverName, imei || null, Boolean(imei)]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -398,14 +419,40 @@ router.post('/vehicles', roleRequired('proveedor_admin', 'admin'), async (req, r
   }
 });
 
-router.patch('/vehicles/:id/gps', roleRequired('proveedor_admin', 'admin'), async (req, res, next) => {
+router.put('/vehicles/:id', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
   try {
-    const user = req.user!;
+    const { name, plate, type, driver_id, imei } = req.body;
+    let driverName = req.body.driver_name || null;
+    if (driver_id) {
+      const u = await query('SELECT name FROM users WHERE id = $1', [driver_id]).catch(() => ({ rows: [] }));
+      if (u.rows[0]) driverName = u.rows[0].name;
+    }
+    const result = await query(
+      `UPDATE vehicles
+       SET name = COALESCE($1, name),
+           plate = COALESCE($2, plate),
+           type = COALESCE($3, type),
+           driver_id = $4,
+           driver_name = COALESCE($5, driver_name),
+           imei = COALESCE($6, imei),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7 RETURNING *`,
+      [name, plate, type, driver_id ? Number(driver_id) : null, driverName, imei || null, req.params.id]
+    );
+    if (!result.rowCount) return res.status(404).json({ error: 'Vehículo no encontrado' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/vehicles/:id/gps', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
+  try {
     const { imei, gps_validated } = req.body;
     const result = await query(
       `UPDATE vehicles SET imei = $1, gps_validated = $2, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 AND supplier_id = $4 RETURNING *`,
-      [imei || null, Boolean(gps_validated), req.params.id, user.supplier_id]
+       WHERE id = $3 RETURNING *`,
+      [imei || null, Boolean(gps_validated), req.params.id]
     );
     if (!result.rowCount) return res.status(404).json({ error: 'Vehículo no encontrado' });
     res.json(result.rows[0]);

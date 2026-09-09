@@ -90,6 +90,45 @@ function RecenterControl({ target }: { target: { lat: number; lng: number } | nu
   );
 }
 
+function getVehicleIcon(type?: string) {
+  const t = (type || '').toLowerCase();
+  if (t === 'camion') {
+    return (
+      <svg className="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM3 5h11v10H3V5zm11 3h4l3 4v3h-7V8z" />
+      </svg>
+    );
+  }
+  if (t === 'furgon') {
+    return (
+      <svg className="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 16h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2zm1 0a2 2 0 104 0m6 0a2 2 0 104 0" />
+      </svg>
+    );
+  }
+  if (t === 'camioneta') {
+    return (
+      <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM4 9l2-4h10l2 4M3 13h18v4H3v-4z" />
+      </svg>
+    );
+  }
+  // Default moto
+  return (
+    <svg className="w-5 h-5 text-sky-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 16a3 3 0 100-6 3 3 0 000 6zm14 0a3 3 0 100-6 3 3 0 000 6zm-7-6l3-4h3m-6 4l-3 4H5m7-4v4" />
+    </svg>
+  );
+}
+
+function getVehicleLabel(type?: string) {
+  const t = (type || '').toLowerCase();
+  if (t === 'camion') return 'Camión';
+  if (t === 'furgon') return 'Furgón';
+  if (t === 'camioneta') return 'Camioneta';
+  return 'Moto';
+}
+
 function LiveMap({
   deliveries,
   selected,
@@ -352,7 +391,11 @@ export default function Deliveries() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<{ id: number; name: string; username: string; phone?: string; role_label?: string; role_name?: string }[]>([]);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
-  const [vehicleForm, setVehicleForm] = useState({ name: '', plate: '', type: 'moto', driver_name: '', imei: '' });
+  const [vehicleForm, setVehicleForm] = useState({ name: '', plate: '', type: 'camion', driver_id: '', driver_name: '', imei: '' });
+
+  // Modal para reasignar usuario a un vehículo
+  const [assignVehicleModal, setAssignVehicleModal] = useState<Vehicle | null>(null);
+  const [assignVehicleDriverId, setAssignVehicleDriverId] = useState('');
 
   // Telemetría GPS en tiempo real
   const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -564,11 +607,45 @@ export default function Deliveries() {
 
   const createVehicle = async () => {
     try {
+      let driverName = vehicleForm.driver_name;
+      if (vehicleForm.driver_id) {
+        const found = drivers.find((d) => d.id === Number(vehicleForm.driver_id));
+        if (found) driverName = found.name;
+      }
       await api('/deliveries/vehicles', {
         method: 'POST',
-        body: JSON.stringify(vehicleForm),
+        body: JSON.stringify({
+          ...vehicleForm,
+          driver_name: driverName || null,
+          driver_id: vehicleForm.driver_id ? Number(vehicleForm.driver_id) : null,
+        }),
       });
+      push({ message: 'Vehículo registrado exitosamente en la flota', at: new Date().toISOString() });
       setModalVehicle(false);
+      setVehicleForm({ name: '', plate: '', type: 'camion', driver_id: '', driver_name: '', imei: '' });
+      load();
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  };
+
+  const assignDriverToVehicle = async () => {
+    if (!assignVehicleModal) return;
+    try {
+      let driverName = '';
+      if (assignVehicleDriverId) {
+        const found = drivers.find((d) => d.id === Number(assignVehicleDriverId));
+        if (found) driverName = found.name;
+      }
+      await api(`/deliveries/vehicles/${assignVehicleModal.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          driver_id: assignVehicleDriverId ? Number(assignVehicleDriverId) : null,
+          driver_name: driverName || null,
+        }),
+      });
+      push({ message: 'Vehículo asignado exitosamente al usuario', at: new Date().toISOString() });
+      setAssignVehicleModal(null);
       load();
     } catch (err) {
       alert((err as Error).message);
@@ -620,12 +697,15 @@ export default function Deliveries() {
               : 'Reconectar GPS'}
           </button>
 
-          {isSupplier && (
+          {canManage && (
             <button
-              onClick={() => setModalVehicle(true)}
-              className="rounded-xl bg-brand px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-dark active:scale-95"
+              onClick={() => {
+                setVehicleForm({ name: '', plate: '', type: 'camion', driver_id: '', driver_name: '', imei: '' });
+                setModalVehicle(true);
+              }}
+              className="rounded-xl bg-brand px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-dark active:scale-95 transition flex items-center gap-1.5"
             >
-              + Vehículo
+              <span>+</span> Vehículo
             </button>
           )}
         </div>
@@ -798,19 +878,82 @@ export default function Deliveries() {
         </div>
       </div>
 
-      {/* Vehículos registrados (rol proveedor) */}
-      {isSupplier && vehicles.length > 0 && (
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <h3 className="mb-3 font-bold text-slate-800 text-sm">Flota de Vehículos Registrados</h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-            {vehicles.map((v) => (
-              <div key={v.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-sm">
-                <p className="font-bold text-slate-800">{v.name}</p>
-                <p className="text-xs text-slate-500">{v.plate} · {v.type} · {v.driver_name ?? 'Sin conductor'}</p>
-                <p className="text-[11px] text-slate-400 mt-1">Estado: {v.status} · GPS: {v.gps_validated ? 'Validado' : 'Pendiente'}</p>
-              </div>
-            ))}
+      {/* Flota de Vehículos Registrados (Motos, Camiones, Furgones) */}
+      {canManage && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span>Flota de Vehículos Registrados ({vehicles.length})</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Asigna camiones o motos a los usuarios y domiciliarios de tu equipo de entrega.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setVehicleForm({ name: '', plate: '', type: 'camion', driver_id: '', driver_name: '', imei: '' });
+                setModalVehicle(true);
+              }}
+              className="rounded-xl bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-dark transition active:scale-95 shadow-xs flex items-center gap-1.5"
+            >
+              <span>+</span> Nuevo Vehículo
+            </button>
           </div>
+
+          {vehicles.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-slate-400 text-xs">
+              No hay vehículos registrados en la flota. Pulsa "+ Nuevo Vehículo" para registrar camiones o motos.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {vehicles.map((v) => {
+                const icon = getVehicleIcon(v.type);
+                const typeLabel = getVehicleLabel(v.type);
+                return (
+                  <div key={v.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-sm hover:border-slate-300 transition space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-9 w-9 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-center">
+                          {icon}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 leading-tight">{v.name}</p>
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                            {v.plate || 'SIN PLACA'}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold text-slate-700 capitalize">
+                        {typeLabel}
+                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1 text-xs">
+                      <div className="truncate">
+                        <span className="text-slate-400 text-[11px]">Conductor: </span>
+                        <span className="font-semibold text-slate-800 truncate">
+                          {v.driver_name || 'Sin asignar'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setAssignVehicleModal(v);
+                          setAssignVehicleDriverId(v.driver_id ? String(v.driver_id) : '');
+                        }}
+                        className="shrink-0 rounded-lg bg-white border border-brand/40 px-2.5 py-1 text-[11px] font-bold text-brand hover:bg-brand hover:text-white transition shadow-2xs"
+                      >
+                        Asignar Usuario
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -918,74 +1061,144 @@ export default function Deliveries() {
 
       {/* Modal para nuevo vehículo */}
       {modalVehicle && (
-        <Modal title="Registrar Nuevo Vehículo" onClose={() => setModalVehicle(false)}>
-          <div className="space-y-3">
+        <Modal title="Registrar Nuevo Vehículo (Camión / Moto)" onClose={() => setModalVehicle(false)}>
+          <div className="space-y-3.5">
             <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Nombre o Identificador:</label>
+              <label className="mb-1.5 block text-xs font-bold text-slate-700">Tipo de Vehículo *</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { id: 'camion', label: 'Camión', desc: 'Carga pesada' },
+                  { id: 'moto', label: 'Moto', desc: 'Repartos ágiles' },
+                  { id: 'furgon', label: 'Furgón', desc: 'Seco / Frío' },
+                  { id: 'camioneta', label: 'Camioneta', desc: 'Utilitario' },
+                ].map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => setVehicleForm({ ...vehicleForm, type: item.id })}
+                    className={`p-2.5 rounded-xl border text-left transition ${
+                      vehicleForm.type === item.id
+                        ? 'border-brand bg-brand/5 ring-2 ring-brand/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      {getVehicleIcon(item.id)}
+                      <span className="font-bold text-xs text-slate-800">{item.label}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Nombre o Identificador *</label>
               <input
                 value={vehicleForm.name}
                 onChange={(e) => setVehicleForm({ ...vehicleForm, name: e.target.value })}
-                placeholder="Ej: Moto Domicilios 1, Furgón Norte"
+                placeholder="Ej: Camión Norte 1, Moto Express 2"
                 className="w-full rounded-xl border px-3 py-2 text-sm"
+                required
               />
             </div>
+
             <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Placa:</label>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Placa del Vehículo *</label>
               <input
                 value={vehicleForm.plate}
-                onChange={(e) => setVehicleForm({ ...vehicleForm, plate: e.target.value })}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, plate: e.target.value.toUpperCase() })}
                 placeholder="Ej: ABC-123"
-                className="w-full rounded-xl border px-3 py-2 text-sm"
+                className="w-full rounded-xl border px-3 py-2 text-sm font-mono uppercase"
+                required
               />
             </div>
+
             <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Tipo de Vehículo:</label>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Asignar a Usuario / Conductor:</label>
               <select
-                value={vehicleForm.type}
-                onChange={(e) => setVehicleForm({ ...vehicleForm, type: e.target.value })}
-                className="w-full rounded-xl border px-3 py-2 text-sm bg-white"
+                value={vehicleForm.driver_id}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const found = drivers.find((d) => d.id === Number(val));
+                  setVehicleForm({
+                    ...vehicleForm,
+                    driver_id: val,
+                    driver_name: found ? found.name : '',
+                  });
+                }}
+                className="w-full rounded-xl border px-3 py-2 text-sm bg-white font-medium"
               >
-                <option value="moto">Moto</option>
-                <option value="furgon">Furgón</option>
-                <option value="camion">Camión</option>
-                <option value="camioneta">Camioneta</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Conductor Asignado:</label>
-              <select
-                value={vehicleForm.driver_name}
-                onChange={(e) => setVehicleForm({ ...vehicleForm, driver_name: e.target.value })}
-                className="w-full rounded-xl border px-3 py-2 text-sm bg-white"
-              >
-                <option value="">-- Seleccionar de los usuarios registrados --</option>
+                <option value="">-- Sin conductor asignado (asignar luego) --</option>
                 {drivers.map((d) => (
-                  <option key={d.id} value={d.name}>
+                  <option key={d.id} value={d.id}>
                     {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'}
                   </option>
                 ))}
               </select>
-              <input
-                value={vehicleForm.driver_name}
-                onChange={(e) => setVehicleForm({ ...vehicleForm, driver_name: e.target.value })}
-                placeholder="O escribir nombre manualmente si no está en la lista"
-                className="w-full rounded-xl border px-3 py-1.5 text-xs text-slate-600 mt-1.5"
-              />
             </div>
+
             <div>
               <label className="mb-1 block text-xs font-bold text-slate-700">IMEI del GPS (opcional):</label>
               <input
                 value={vehicleForm.imei}
                 onChange={(e) => setVehicleForm({ ...vehicleForm, imei: e.target.value })}
                 placeholder="IMEI del GPS (15 dígitos, opcional)"
-                className="w-full rounded-xl border px-3 py-2 text-sm"
+                className="w-full rounded-xl border px-3 py-2 text-sm font-mono"
               />
             </div>
+
             <button
               onClick={createVehicle}
-              className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark shadow transition"
+              disabled={!vehicleForm.name.trim() || !vehicleForm.plate.trim()}
+              className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark shadow transition disabled:opacity-50"
             >
-              Guardar vehículo
+              Guardar y Registrar Vehículo
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal para Asignar / Cambiar Conductor del Vehículo */}
+      {assignVehicleModal && (
+        <Modal
+          title={`Asignar Usuario a: ${assignVehicleModal.name} (${assignVehicleModal.plate})`}
+          onClose={() => setAssignVehicleModal(null)}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
+                {getVehicleIcon(assignVehicleModal.type)}
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 text-sm">{assignVehicleModal.name}</p>
+                <p className="text-xs text-slate-500">
+                  {getVehicleLabel(assignVehicleModal.type)} · Placa: <b>{assignVehicleModal.plate}</b>
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Seleccionar Usuario / Domiciliario:</label>
+              <select
+                value={assignVehicleDriverId}
+                onChange={(e) => setAssignVehicleDriverId(e.target.value)}
+                className="w-full rounded-xl border px-3 py-2 text-sm bg-white font-medium"
+              >
+                <option value="">-- Sin conductor asignado --</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={assignDriverToVehicle}
+              className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark shadow transition active:scale-95"
+            >
+              Confirmar Asignación Vehicular
             </button>
           </div>
         </Modal>

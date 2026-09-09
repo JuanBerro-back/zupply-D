@@ -16,6 +16,8 @@ interface TeamUser {
   is_active: boolean;
   last_login: string | null;
   created_at: string;
+  vehicle_type?: string | null;
+  vehicle_plate?: string | null;
 }
 
 const RESTAURANT_ROLES = [
@@ -29,13 +31,65 @@ const SUPPLIER_ROLES = [
   { id: 4, name: 'proveedor_admin', label: 'Administrador Proveedor' },
 ];
 
+function getVehicleBadge(type?: string | null, plate?: string | null) {
+  if (!type || type === 'ninguno') return null;
+  const t = type.toLowerCase();
+  if (t === 'camion') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-xs font-bold text-indigo-800">
+        <svg className="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM3 5h11v10H3V5zm11 3h4l3 4v3h-7V8z" />
+        </svg>
+        <span>Camión {plate ? `· ${plate}` : ''}</span>
+      </span>
+    );
+  }
+  if (t === 'furgon') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-bold text-blue-800">
+        <svg className="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 16h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2zm1 0a2 2 0 104 0m6 0a2 2 0 104 0" />
+        </svg>
+        <span>Furgón {plate ? `· ${plate}` : ''}</span>
+      </span>
+    );
+  }
+  if (t === 'camioneta') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-bold text-emerald-800">
+        <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM4 9l2-4h10l2 4M3 13h18v4H3v-4z" />
+        </svg>
+        <span>Camioneta {plate ? `· ${plate}` : ''}</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-lg bg-sky-50 border border-sky-200 px-2 py-0.5 text-xs font-bold text-sky-800">
+      <svg className="w-3.5 h-3.5 text-sky-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 16a3 3 0 100-6 3 3 0 000 6zm14 0a3 3 0 100-6 3 3 0 000 6zm-7-6l3-4h3m-6 4l-3 4H5m7-4v4" />
+      </svg>
+      <span>Moto {plate ? `· ${plate}` : ''}</span>
+    </span>
+  );
+}
+
 export default function TeamManagement() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<TeamUser | null>(null);
-  const [form, setForm] = useState({ username: '', password: '', name: '', email: '', phone: '', role_id: 5 });
+  const [form, setForm] = useState({
+    username: '',
+    password: '',
+    name: '',
+    email: '',
+    phone: '',
+    role_id: 5,
+    vehicle_type: 'ninguno',
+    vehicle_plate: '',
+  });
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(true);
@@ -75,6 +129,8 @@ export default function TeamManagement() {
             email: form.email.trim() || null,
             phone: form.phone.trim() || null,
             role_id: Number(form.role_id),
+            vehicle_type: form.vehicle_type !== 'ninguno' ? form.vehicle_type : null,
+            vehicle_plate: form.vehicle_plate.trim().toUpperCase() || null,
           }),
         });
         setSuccessMsg('Usuario actualizado correctamente');
@@ -88,13 +144,24 @@ export default function TeamManagement() {
             email: form.email.trim() || null,
             phone: form.phone.trim() || null,
             role_id: Number(form.role_id),
+            vehicle_type: form.vehicle_type !== 'ninguno' ? form.vehicle_type : null,
+            vehicle_plate: form.vehicle_plate.trim().toUpperCase() || null,
           }),
         });
         setSuccessMsg('Usuario creado exitosamente y disponible para asignación');
       }
       setShowForm(false);
       setEditingUser(null);
-      setForm({ username: '', password: '', name: '', email: '', phone: '', role_id: 5 });
+      setForm({
+        username: '',
+        password: '',
+        name: '',
+        email: '',
+        phone: '',
+        role_id: 5,
+        vehicle_type: 'ninguno',
+        vehicle_plate: '',
+      });
       loadUsers();
     } catch (err) {
       setError((err as Error).message);
@@ -110,6 +177,8 @@ export default function TeamManagement() {
       email: u.email || '',
       phone: u.phone || '',
       role_id: u.role_id || 5,
+      vehicle_type: u.vehicle_type || 'ninguno',
+      vehicle_plate: u.vehicle_plate || '',
     });
     setShowForm(true);
   };
@@ -225,7 +294,16 @@ export default function TeamManagement() {
           onClick={() => {
             setShowForm(true);
             setEditingUser(null);
-            setForm({ username: '', password: '', name: '', email: '', phone: '', role_id: 5 });
+            setForm({
+              username: '',
+              password: '',
+              name: '',
+              email: '',
+              phone: '',
+              role_id: 5,
+              vehicle_type: 'ninguno',
+              vehicle_plate: '',
+            });
           }}
           className="rounded-xl bg-brand px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-brand-dark active:scale-95 transition flex items-center gap-1.5"
         >
@@ -416,6 +494,43 @@ export default function TeamManagement() {
               </p>
             </div>
 
+            {/* Asignación de Vehículo (Moto / Camión / Furgón) */}
+            <div className="pt-2.5 border-t border-slate-200 space-y-2">
+              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span>Asignación de Vehículo (Camión / Moto)</span>
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">Tipo de Vehículo</label>
+                  <select
+                    value={form.vehicle_type}
+                    onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
+                  >
+                    <option value="ninguno">Sin vehículo asignado</option>
+                    <option value="moto">Moto (Motocicleta de reparto)</option>
+                    <option value="camion">Camión (Carga pesada)</option>
+                    <option value="furgon">Furgón (Carga seca / refrigerada)</option>
+                    <option value="camioneta">Camioneta (Vehículo utilitario)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">Placa del Vehículo</label>
+                  <input
+                    value={form.vehicle_plate}
+                    onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
+                    placeholder="Ej: ABC-123"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-2 pt-3 border-t border-slate-200">
               <button
                 type="submit"
@@ -464,6 +579,11 @@ export default function TeamManagement() {
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm leading-tight">{u.name}</h3>
                     <p className="text-xs text-slate-500 font-mono">@{u.username}</p>
+                    {u.vehicle_type && u.vehicle_type !== 'ninguno' && (
+                      <div className="mt-1">
+                        {getVehicleBadge(u.vehicle_type, u.vehicle_plate)}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {getRoleBadge(u.role_id, u.role_name)}
@@ -561,6 +681,7 @@ export default function TeamManagement() {
               <th className="px-5 py-3.5">Usuario</th>
               <th className="px-5 py-3.5">Nombre</th>
               <th className="px-5 py-3.5">Rol</th>
+              <th className="px-5 py-3.5">Vehículo</th>
               <th className="px-5 py-3.5">Contacto</th>
               <th className="px-5 py-3.5">Estado</th>
               <th className="px-5 py-3.5 text-right">Acciones</th>
@@ -580,6 +701,11 @@ export default function TeamManagement() {
                     <div className="text-[11px] text-slate-400">{u.email || 'Sin correo'}</div>
                   </td>
                   <td className="px-5 py-3.5">{getRoleBadge(u.role_id, u.role_name)}</td>
+                  <td className="px-5 py-3.5">
+                    {getVehicleBadge(u.vehicle_type, u.vehicle_plate) || (
+                      <span className="text-slate-400 text-xs">-</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3.5 text-xs text-slate-600">
                     {u.phone ? (
                       <a href={`tel:${u.phone}`} className="text-brand font-medium hover:underline inline-flex items-center gap-1">
@@ -641,7 +767,7 @@ export default function TeamManagement() {
             })}
             {filteredUsers.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-slate-500 font-medium">
+                <td colSpan={7} className="px-5 py-10 text-center text-slate-500 font-medium">
                   No hay usuarios registrados en esta categoría
                 </td>
               </tr>
