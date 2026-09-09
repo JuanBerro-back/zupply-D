@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { getExactLocation, watchExactLocation, requestLocationPermissions } from '../lib/location';
 import { useAuth } from '../context/AuthContext';
 import { Delivery, Vehicle } from '../types';
 import { DELIVERY_STATUS, formatDate } from '../lib/constants';
@@ -42,6 +43,7 @@ function driverPositionFor(delivery: Delivery, myCoords?: { lat: number; lng: nu
   const lat = Number(delivery.vehicle_lat);
   const lng = Number(delivery.vehicle_lng);
   if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) return { lat, lng };
+  if (myCoords) return myCoords;
   // Coordenadas base en Bucaramanga si aún no hay transmisión GPS
   return { lat: 7.1193 + (delivery.id % 5) * 0.003, lng: -73.1227 + (delivery.id % 4) * 0.003 };
 }
@@ -54,13 +56,36 @@ function destinationPositionFor(delivery: Delivery) {
   return { lat: 7.1265 + (delivery.id % 3) * 0.004, lng: -73.1180 + (delivery.id % 3) * 0.003 };
 }
 
-// Componente para centrar el mapa suavemente cuando cambia la entrega seleccionada
+// Componente para centrar el mapa suavemente cuando cambian las coordenadas
 function MapRecenter({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
     map.setView(center, map.getZoom(), { animate: true });
   }, [center, map]);
   return null;
+}
+
+// Botón flotante dentro del mapa para centrar en la ubicación actual del usuario
+function RecenterControl({ target }: { target: { lat: number; lng: number } | null }) {
+  const map = useMap();
+  if (!target) return null;
+  return (
+    <div className="leaflet-top leaflet-right !mt-3 !mr-3 z-[999] pointer-events-auto">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          map.setView([target.lat, target.lng], 16, { animate: true });
+        }}
+        className="flex items-center gap-1.5 rounded-xl bg-white/95 px-3 py-2 text-xs font-bold text-blue-700 shadow-lg border border-blue-200 hover:bg-blue-50 active:scale-95 transition backdrop-blur-sm cursor-pointer"
+        title="Centrar mapa en mi ubicación actual"
+      >
+        <span className="text-base leading-none">🎯</span>
+        <span>Mi Ubicación</span>
+      </button>
+    </div>
+  );
 }
 
 function LiveMap({
@@ -70,6 +95,7 @@ function LiveMap({
   myCoords,
   isDriver,
   liveSpeed,
+  gpsAccuracy,
 }: {
   deliveries: Delivery[];
   selected: Delivery | null;
@@ -77,6 +103,7 @@ function LiveMap({
   myCoords: { lat: number; lng: number } | null;
   isDriver: boolean;
   liveSpeed: number | null;
+  gpsAccuracy: number | null;
 }) {
   const active = deliveries.filter((d) => d.status !== 'entregado' && d.status !== 'fallido');
 
@@ -102,16 +129,24 @@ function LiveMap({
 
   const mapCenter: [number, number] = proximityData
     ? [proximityData.driverPos.lat, proximityData.driverPos.lng]
+    : myCoords
+    ? [myCoords.lat, myCoords.lng]
     : [7.1193, -73.1227];
 
   return (
     <div className="relative min-h-[420px] overflow-hidden rounded-2xl border border-slate-300 shadow-md">
-      <MapContainer center={mapCenter} zoom={14} className="h-[420px] w-full">
+      <MapContainer center={mapCenter} zoom={15} className="h-[420px] w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {proximityData && <MapRecenter center={[proximityData.driverPos.lat, proximityData.driverPos.lng]} />}
+        {proximityData ? (
+          <MapRecenter center={[proximityData.driverPos.lat, proximityData.driverPos.lng]} />
+        ) : myCoords ? (
+          <MapRecenter center={[myCoords.lat, myCoords.lng]} />
+        ) : null}
+
+        <RecenterControl target={myCoords} />
 
         {/* Línea de proximidad estilo DiDi / Rappi entre el domiciliario y el destino */}
         {proximityData && (
@@ -124,6 +159,57 @@ function LiveMap({
               positions={proximityData.route}
               pathOptions={{ color: '#2563eb', weight: 4, dashArray: '8, 8', opacity: 0.95 }}
             />
+          </>
+        )}
+
+        {/* Marcador de Mi Ubicación Actual (Exactitud GPS en tiempo real) */}
+        {myCoords && (
+          <>
+            {/* Halo de precisión GPS en metros */}
+            <CircleMarker
+              center={[myCoords.lat, myCoords.lng]}
+              radius={Math.min(Math.max((gpsAccuracy || 20) / 2, 12), 50)}
+              pathOptions={{
+                color: '#2563eb',
+                weight: 1.5,
+                fillColor: '#3b82f6',
+                fillOpacity: 0.15,
+                dashArray: '3, 3',
+              }}
+            />
+
+            {/* Punto azul de usuario con borde blanco estilo Google Maps / DiDi */}
+            <CircleMarker
+              center={[myCoords.lat, myCoords.lng]}
+              radius={9}
+              pathOptions={{
+                color: '#ffffff',
+                weight: 3,
+                fillColor: '#2563eb',
+                fillOpacity: 1,
+              }}
+            >
+              <Popup>
+                <div className="text-xs p-1">
+                  <p className="font-bold text-blue-700 flex items-center gap-1">
+                    <span>📍</span> Mi Posición Actual
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    {myCoords.lat.toFixed(6)}, {myCoords.lng.toFixed(6)}
+                  </p>
+                  {gpsAccuracy != null && (
+                    <p className="text-[11px] text-emerald-600 font-semibold">
+                      Exactitud GPS: ±{gpsAccuracy}m
+                    </p>
+                  )}
+                  {liveSpeed != null && liveSpeed > 0 && (
+                    <p className="text-[11px] text-slate-700">
+                      Velocidad: {liveSpeed} km/h
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </CircleMarker>
           </>
         )}
 
@@ -142,14 +228,14 @@ function LiveMap({
                 pathOptions={{
                   color: '#ffffff',
                   weight: 3,
-                  fillColor: '#2563eb',
+                  fillColor: '#0284c7',
                   fillOpacity: 0.95,
                 }}
                 eventHandlers={{ click: () => onSelect(delivery) }}
               >
                 <Popup>
                   <div className="text-xs">
-                    <p className="font-bold text-blue-700">🛵 Repartidor en ruta</p>
+                    <p className="font-bold text-sky-700">🛵 Repartidor en ruta</p>
                     <p className="font-semibold">{delivery.driver_name || 'Sin asignar'}</p>
                     <p>Pedido: {delivery.order_code}</p>
                     {liveSpeed != null && <p>Velocidad: {liveSpeed} km/h</p>}
@@ -223,17 +309,18 @@ function LiveMap({
 
       {/* Estado inferior de pedidos activos */}
       <div className="absolute bottom-3 left-3 rounded-lg bg-white/95 px-3 py-1.5 text-xs shadow-md border z-[1000] flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-        <span className="font-semibold text-slate-800">{active.length} entrega(s) en ruta</span>
+        {active.length > 0 ? (
+          <>
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className="font-semibold text-slate-800">{active.length} entrega(s) en ruta</span>
+          </>
+        ) : (
+          <>
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
+            <span className="font-semibold text-slate-700">0 entregas asignadas · GPS en vivo</span>
+          </>
+        )}
       </div>
-
-      {active.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-50/70 z-[999] pointer-events-none">
-          <p className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow border">
-            No hay entregas activas en este momento.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -342,47 +429,90 @@ export default function Deliveries() {
     };
   }, []);
 
-  // Rastreo GPS en tiempo real para el domiciliario
+  const refreshGps = async () => {
+    setGpsManualEnabled(true);
+    setGpsStatus('pendiente');
+    try {
+      await requestLocationPermissions();
+      const loc = await getExactLocation();
+      if (loc) {
+        setMyCoords({ lat: loc.lat, lng: loc.lng });
+        setGpsAccuracy(loc.accuracy);
+        setLiveSpeed(loc.speed ?? null);
+        setGpsStatus('activo');
+        push({
+          message: `📍 GPS sincronizado (Precisión: ±${loc.accuracy}m)`,
+          at: new Date().toISOString(),
+        });
+      } else {
+        setGpsStatus('error');
+        push({
+          message: '⚠️ No se pudo obtener la posición GPS exacta. Activa la ubicación de tu teléfono.',
+          at: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      console.warn('[GPS] Error en refreshGps:', e);
+      setGpsStatus('error');
+    }
+  };
+
+  // Rastreo GPS en tiempo real de alta exactitud (Capacitor nativo FusedLocation / Navegador)
   useEffect(() => {
-    if (!isDriver || !gpsManualEnabled || !navigator.geolocation) {
-      if (!isDriver) setGpsStatus('inactivo');
+    if (!gpsManualEnabled) {
+      setGpsStatus('inactivo');
       return;
     }
 
+    let isMounted = true;
     setGpsStatus('pendiente');
 
-    const watchId = navigator.geolocation.watchPosition(
-      ({ coords }) => {
+    // 1. Obtener ubicación precisa inicial inmediata
+    getExactLocation().then((loc) => {
+      if (!isMounted || !loc) return;
+      setMyCoords({ lat: loc.lat, lng: loc.lng });
+      setGpsAccuracy(loc.accuracy);
+      setLiveSpeed(loc.speed ?? null);
+      setGpsStatus('activo');
+    });
+
+    // 2. Transmisión continua en tiempo real con alta exactitud
+    const unwatch = watchExactLocation(
+      (loc) => {
+        if (!isMounted) return;
+        setMyCoords({ lat: loc.lat, lng: loc.lng });
+        setGpsAccuracy(loc.accuracy);
+        setLiveSpeed(loc.speed ?? null);
         setGpsStatus('activo');
-        setMyCoords({ lat: coords.latitude, lng: coords.longitude });
-        setGpsAccuracy(Math.round(coords.accuracy));
-        const speedKmh = coords.speed == null ? null : Math.round(coords.speed * 3.6);
-        setLiveSpeed(speedKmh);
 
-        // Si hay una entrega activa asignada a este domiciliario, enviamos coordenadas a la API
-        const myActiveDelivery = deliveries.find(
-          (d) => d.status !== 'entregado' && d.status !== 'fallido' && (d.driver_id === user?.id || !d.driver_id)
-        );
+        // Si el usuario es domiciliario y tiene entrega activa, reporta telemetría al servidor
+        if (isDriver) {
+          const myActiveDelivery = deliveries.find(
+            (d) => d.status !== 'entregado' && d.status !== 'fallido' && (d.driver_id === user?.id || !d.driver_id)
+          );
 
-        if (myActiveDelivery) {
-          api(`/deliveries/${myActiveDelivery.id}/position`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              lat: coords.latitude,
-              lng: coords.longitude,
-              speed: speedKmh,
-            }),
-          }).catch(() => undefined);
+          if (myActiveDelivery) {
+            api(`/deliveries/${myActiveDelivery.id}/position`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                lat: loc.lat,
+                lng: loc.lng,
+                speed: loc.speed,
+              }),
+            }).catch(() => undefined);
+          }
         }
       },
       (err) => {
-        console.warn('[GPS] Error obteniendo ubicación:', err);
-        setGpsStatus('error');
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+        console.warn('[GPS] Error de seguimiento:', err);
+        if (isMounted) setGpsStatus('error');
+      }
     );
 
-    return () => navigator.geolocation.clearWatch(watchId);
+    return () => {
+      isMounted = false;
+      unwatch();
+    };
   }, [isDriver, gpsManualEnabled, deliveries, user?.id]);
 
   const changeStatus = async (id: number, status: string) => {
@@ -455,39 +585,39 @@ export default function Deliveries() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Panel GPS para Domiciliarios */}
-          {isDriver && (
-            <button
-              onClick={() => setGpsManualEnabled(!gpsManualEnabled)}
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition ${
-                gpsStatus === 'activo'
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                  : gpsStatus === 'pendiente'
-                  ? 'border-amber-300 bg-amber-50 text-amber-800'
-                  : 'border-slate-300 bg-white text-slate-600'
-              }`}
-            >
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  gpsStatus === 'activo'
-                    ? 'bg-emerald-500 animate-pulse'
-                    : gpsStatus === 'pendiente'
-                    ? 'bg-amber-400'
-                    : 'bg-red-400'
-                }`}
-              />
-              {gpsStatus === 'activo'
-                ? `GPS Activo ${gpsAccuracy ? `(±${gpsAccuracy}m)` : ''}`
+          {/* Botón de estado GPS y calibración de alta exactitud */}
+          <button
+            type="button"
+            onClick={refreshGps}
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm transition active:scale-95 ${
+              gpsStatus === 'activo'
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                 : gpsStatus === 'pendiente'
-                ? 'Conectando GPS...'
-                : 'Activar GPS'}
-            </button>
-          )}
+                ? 'border-amber-300 bg-amber-50 text-amber-800'
+                : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100'
+            }`}
+            title="Haga clic para sincronizar o recalibrar la posición GPS con alta exactitud"
+          >
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                gpsStatus === 'activo'
+                  ? 'bg-emerald-500 animate-pulse'
+                  : gpsStatus === 'pendiente'
+                  ? 'bg-amber-400 animate-ping'
+                  : 'bg-rose-500'
+              }`}
+            />
+            {gpsStatus === 'activo'
+              ? `GPS Activo ${gpsAccuracy ? `(±${gpsAccuracy}m)` : ''}`
+              : gpsStatus === 'pendiente'
+              ? 'Conectando GPS...'
+              : 'Reconectar GPS'}
+          </button>
 
           {isSupplier && (
             <button
               onClick={() => setModalVehicle(true)}
-              className="rounded-xl bg-brand px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-dark"
+              className="rounded-xl bg-brand px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-dark active:scale-95"
             >
               + Vehículo
             </button>
@@ -504,6 +634,7 @@ export default function Deliveries() {
           myCoords={myCoords}
           isDriver={isDriver}
           liveSpeed={liveSpeed}
+          gpsAccuracy={gpsAccuracy}
         />
 
         {/* Lista lateral de entregas activas */}
