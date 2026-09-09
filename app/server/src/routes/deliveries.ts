@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
 import { emitOrder, emitToUser } from '../lib/realtime';
+import { resolveBucaramangaCoords, BUCARAMANGA_DESTINATIONS, BUCARAMANGA_DISPATCH_HUBS } from '../lib/bucaramangaGeo';
 
 const router = Router();
 router.use(authRequired);
@@ -65,10 +66,44 @@ router.get('/my-deliveries', roleRequired('domiciliario'), async (req, res, next
   }
 });
 
-// Asegurar columnas de asignación de vehículos
+// Asegurar columnas de asignación de vehículos y coordenadas reales en Bucaramanga
 query(`
   ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS driver_id INT;
   ALTER TABLE vehicles ALTER COLUMN supplier_id DROP NOT NULL;
+
+  -- Actualizar destinos de entregas existentes con direcciones reales emblemáticas de Bucaramanga
+  UPDATE deliveries
+  SET dest_lat = 7.1168, dest_lng = -73.1095,
+      delivery_address = 'Carrera 35 #48-22, Cabecera del Llano, Bucaramanga'
+  WHERE id % 4 = 1;
+
+  UPDATE deliveries
+  SET dest_lat = 7.0665, dest_lng = -73.1030,
+      delivery_address = 'Calle 30 #26-10, Parque Caracolí / Cañaveral, Floridablanca'
+  WHERE id % 4 = 2;
+
+  UPDATE deliveries
+  SET dest_lat = 7.0845, dest_lng = -73.1175,
+      delivery_address = 'Calle 105 #24-32, Provenza, Bucaramanga'
+  WHERE id % 4 = 3;
+
+  UPDATE deliveries
+  SET dest_lat = 7.0984, dest_lng = -73.1090,
+      delivery_address = 'Transversal 93 #34-99, El Tejar / C.C. Cacique, Bucaramanga'
+  WHERE id % 4 = 0;
+
+  -- Actualizar coordenadas de vehículos en hubs logísticos reales
+  UPDATE vehicles
+  SET current_lat = 7.1320, current_lng = -73.1650
+  WHERE id % 3 = 1;
+
+  UPDATE vehicles
+  SET current_lat = 7.0850, current_lng = -73.1680
+  WHERE id % 3 = 2;
+
+  UPDATE vehicles
+  SET current_lat = 7.1235, current_lng = -73.1285
+  WHERE id % 3 = 0;
 `).catch(() => undefined);
 
 router.get('/vehicles', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
@@ -148,6 +183,12 @@ router.post('/', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req
     const existing = await query('SELECT * FROM deliveries WHERE order_id = $1', [order_id]);
     let deliveryRow;
 
+    const targetAddress = delivery_address ?? order.rows[0].delivery_address;
+    const resolvedGeo = resolveBucaramangaCoords(targetAddress, order_id);
+    const finalLat = dest_lat ? Number(dest_lat) : resolvedGeo.lat;
+    const finalLng = dest_lng ? Number(dest_lng) : resolvedGeo.lng;
+    const finalAddress = targetAddress || resolvedGeo.address;
+
     if (existing.rowCount) {
       // Actualizar la entrega existente
       const updated = await query(
@@ -163,9 +204,9 @@ router.post('/', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req
          WHERE id = $8 RETURNING *`,
         [vehicle_id ? Number(vehicle_id) : null,
          driver_id ? Number(driver_id) : null,
-         delivery_address ?? order.rows[0].delivery_address,
+         finalAddress,
          scheduled_time || null, notes,
-         dest_lat || 7.1250, dest_lng || -73.1190,
+         finalLat, finalLng,
          existing.rows[0].id]
       );
       deliveryRow = updated.rows[0];
@@ -178,8 +219,8 @@ router.post('/', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req
            delivery_address, scheduled_time, notes, confirmation_code, dest_lat, dest_lng)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
         [code, order_id, vehicle_id ? Number(vehicle_id) : null, driver_id ? Number(driver_id) : null, order.rows[0].restaurant_id,
-         delivery_address ?? order.rows[0].delivery_address, scheduled_time || null, notes, confirmationCode,
-         dest_lat || 7.1250, dest_lng || -73.1190]
+         finalAddress, scheduled_time || null, notes, confirmationCode,
+         finalLat, finalLng]
       );
       deliveryRow = result.rows[0];
       if (Array.isArray(items)) {

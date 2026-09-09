@@ -10,6 +10,11 @@ import { useNotifications } from '../context/NotificationContext';
 import { getSocket } from '../lib/socket';
 import { CircleMarker, MapContainer, Popup, TileLayer, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import {
+  resolveBucaramangaCoords,
+  resolveDispatchHub,
+  DEMO_BUCARAMANGA_DELIVERIES,
+} from '../lib/bucaramangaGeo';
 
 type PositionEvent = { delivery_id: number; lat: number; lng: number; speed?: number | null };
 const DELIVERY_STORAGE_KEY = 'zupply_deliveries_route_v2';
@@ -39,29 +44,69 @@ function formatEta(km: number, speed?: number | null): string {
 }
 
 function driverPositionFor(delivery: Delivery, myCoords?: { lat: number; lng: number } | null, isMyDelivery = false) {
-  if (isMyDelivery && myCoords) return myCoords;
+  if (isMyDelivery && myCoords) return { lat: myCoords.lat, lng: myCoords.lng, name: 'Mi Posición Actual' };
   const lat = Number(delivery.vehicle_lat);
   const lng = Number(delivery.vehicle_lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) return { lat, lng };
-  if (myCoords) return myCoords;
-  // Coordenadas base en Bucaramanga si aún no hay transmisión GPS
-  return { lat: 7.1193 + (delivery.id % 5) * 0.003, lng: -73.1227 + (delivery.id % 4) * 0.003 };
+  if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) {
+    return { lat, lng, name: delivery.vehicle_name || 'Vehículo en ruta' };
+  }
+  if (myCoords) return { lat: myCoords.lat, lng: myCoords.lng, name: 'Mi Posición Actual' };
+  // Hub real de despacho en Bucaramanga
+  const hub = resolveDispatchHub(delivery.id || delivery.order_id || 1);
+  return { lat: hub.lat, lng: hub.lng, name: `${hub.name} (${hub.sector})` };
 }
 
 function destinationPositionFor(delivery: Delivery) {
   const lat = Number(delivery.dest_lat);
   const lng = Number(delivery.dest_lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) return { lat, lng };
-  // Destino predeterminado en Bucaramanga
-  return { lat: 7.1265 + (delivery.id % 3) * 0.004, lng: -73.1180 + (delivery.id % 3) * 0.003 };
+  if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) {
+    return {
+      lat,
+      lng,
+      name: delivery.restaurant_name,
+      address: delivery.delivery_address,
+      sector: '',
+    };
+  }
+  // Resolver punto real de Bucaramanga por dirección o id
+  const dest = resolveBucaramangaCoords(delivery.delivery_address, delivery.id || delivery.order_id || 1);
+  return {
+    lat: dest.lat,
+    lng: dest.lng,
+    name: dest.name,
+    address: dest.address,
+    sector: dest.sector,
+  };
 }
 
-// Componente para centrar el mapa suavemente cuando cambian las coordenadas
-function MapRecenter({ center }: { center: [number, number] }) {
+// Componente para encuadrar la ruta o centrar el mapa suavemente
+function MapRecenter({
+  center,
+  bounds,
+}: {
+  center?: [number, number];
+  bounds?: [[number, number], [number, number]];
+}) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom(), { animate: true });
-  }, [center, map]);
+    if (bounds && bounds.length === 2) {
+      try {
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
+      } catch {
+        if (center) map.setView(center, map.getZoom(), { animate: true });
+      }
+    } else if (center) {
+      map.setView(center, map.getZoom(), { animate: true });
+    }
+  }, [
+    center ? center[0] : null,
+    center ? center[1] : null,
+    bounds ? bounds[0][0] : null,
+    bounds ? bounds[0][1] : null,
+    bounds ? bounds[1][0] : null,
+    bounds ? bounds[1][1] : null,
+    map,
+  ]);
   return null;
 }
 
@@ -161,10 +206,14 @@ function LiveMap({
       driverPos,
       destPos,
       distKm,
+      originName: driverPos.name,
+      destName: destPos.name,
+      destAddress: destPos.address || activeTarget.delivery_address,
+      destSector: destPos.sector,
       route: [
         [driverPos.lat, driverPos.lng] as [number, number],
         [destPos.lat, destPos.lng] as [number, number],
-      ],
+      ] as [[number, number], [number, number]],
     };
   }, [activeTarget, myCoords, isDriver, active.length]);
 
@@ -175,14 +224,14 @@ function LiveMap({
     : [7.1193, -73.1227];
 
   return (
-    <div className="relative min-h-[420px] overflow-hidden rounded-2xl border border-slate-300 shadow-md">
-      <MapContainer center={mapCenter} zoom={15} className="h-[420px] w-full">
+    <div className="relative min-h-[440px] overflow-hidden rounded-2xl border border-slate-300 shadow-md">
+      <MapContainer center={mapCenter} zoom={13} className="h-[440px] w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {proximityData ? (
-          <MapRecenter center={[proximityData.driverPos.lat, proximityData.driverPos.lng]} />
+          <MapRecenter bounds={proximityData.route} center={[proximityData.driverPos.lat, proximityData.driverPos.lng]} />
         ) : myCoords ? (
           <MapRecenter center={[myCoords.lat, myCoords.lng]} />
         ) : null}
@@ -313,41 +362,60 @@ function LiveMap({
 
       {/* Tarjeta flotante superior tipo DiDi / Uber Eats con línea de proximidad */}
       {activeTarget && proximityData && (
-        <div className="absolute top-3 left-3 right-3 sm:right-auto sm:max-w-sm rounded-xl bg-slate-900/90 p-3 text-white shadow-xl backdrop-blur-md z-[1000] border border-white/10">
-          <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-700">
+        <div className="absolute top-3 left-3 right-3 sm:right-auto sm:max-w-md rounded-xl bg-slate-900/95 p-3.5 text-white shadow-2xl backdrop-blur-md z-[1000] border border-white/10">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-700/80">
             <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              RUTA DE PROXIMIDAD ACTIVA
+              RECORRIDO EN VIVO EN BUCARAMANGA
             </span>
-            <span className="text-[11px] text-slate-400 font-mono">{activeTarget.order_code}</span>
+            <span className="text-[11px] text-slate-400 font-mono font-semibold">{activeTarget.order_code}</span>
           </div>
 
-          <div className="mt-2 flex items-center justify-between">
+          <div className="mt-2.5 flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-slate-400">Distancia al destino:</p>
-              <p className="text-lg font-extrabold text-blue-400">
+              <p className="text-[11px] text-slate-400 font-medium">Distancia de ruta:</p>
+              <p className="text-xl font-extrabold text-blue-400 flex items-baseline gap-2">
                 {formatDistance(proximityData.distKm)}
-                <span className="ml-2 text-xs font-normal text-slate-300">
+                <span className="text-xs font-normal text-emerald-300">
                   ({formatEta(proximityData.distKm, liveSpeed)})
                 </span>
               </p>
             </div>
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${proximityData.destPos.lat},${proximityData.destPos.lng}`}
+              href={`https://www.google.com/maps/dir/?api=1&origin=${proximityData.driverPos.lat},${proximityData.driverPos.lng}&destination=${proximityData.destPos.lat},${proximityData.destPos.lng}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow flex items-center gap-1.5"
+              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow flex items-center gap-1.5 shrink-0 transition active:scale-95"
               title="Abrir navegación en Google Maps"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
-              <span>Navegar</span>
+              <span>Navegar GPS</span>
             </a>
           </div>
 
-          <div className="mt-2 text-xs text-slate-300 truncate">
-            <b>Entrega:</b> {activeTarget.restaurant_name} · {activeTarget.delivery_address}
+          <div className="mt-2.5 space-y-1 text-xs border-t border-slate-800 pt-2">
+            <div className="flex items-start gap-1.5 text-slate-300">
+              <span className="h-2 w-2 mt-1 rounded-full bg-blue-400 shrink-0" />
+              <div className="truncate">
+                <span className="text-slate-400 font-medium">Origen: </span>
+                <span className="font-semibold text-slate-200">
+                  {proximityData.originName || activeTarget.vehicle_name || 'Despacho Bucaramanga'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-start gap-1.5 text-slate-300">
+              <span className="h-2 w-2 mt-1 rounded-full bg-emerald-400 shrink-0" />
+              <div className="truncate">
+                <span className="text-slate-400 font-medium">Destino: </span>
+                <span className="font-semibold text-slate-200">{activeTarget.restaurant_name}</span>
+                {proximityData.destSector && (
+                  <span className="text-blue-300 text-[10px] ml-1 font-semibold">({proximityData.destSector})</span>
+                )}
+                <span className="text-slate-400 text-[11px] block truncate">{activeTarget.delivery_address}</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -373,12 +441,13 @@ function LiveMap({
 function loadPersistedDeliveries(): Delivery[] {
   try {
     const raw = localStorage.getItem(DELIVERY_STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) return DEMO_BUCARAMANGA_DELIVERIES;
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number'));
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEMO_BUCARAMANGA_DELIVERIES;
+    const valid = parsed.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number'));
+    return valid.length > 0 ? valid : DEMO_BUCARAMANGA_DELIVERIES;
   } catch {
-    return [];
+    return DEMO_BUCARAMANGA_DELIVERIES;
   }
 }
 
@@ -424,16 +493,26 @@ export default function Deliveries() {
     api<Delivery[]>('/deliveries')
       .then((next) => {
         const normalized = Array.isArray(next) ? next.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number')) : [];
-        setDeliveries(normalized);
-        localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(normalized));
-        if (normalized.length > 0 && !selected) {
-          setSelected(normalized[0]);
+        if (normalized.length > 0) {
+          setDeliveries(normalized);
+          localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(normalized));
+          if (!selected) {
+            setSelected(normalized[0]);
+          }
+        } else {
+          setDeliveries((prev) => (prev.length > 0 ? prev : DEMO_BUCARAMANGA_DELIVERIES));
+          if (!selected) {
+            setSelected(DEMO_BUCARAMANGA_DELIVERIES[0]);
+          }
         }
       })
       .catch((err) => {
         console.error(err);
         const stored = loadPersistedDeliveries();
-        if (stored.length) setDeliveries(stored);
+        if (stored.length) {
+          setDeliveries(stored);
+          if (!selected) setSelected(stored[0]);
+        }
       });
 
     if (canManage) {
@@ -737,6 +816,9 @@ export default function Deliveries() {
               {activeDeliveries.map((delivery, index) => {
                 const isCurrent = selected?.id === delivery.id;
                 const st = DELIVERY_STATUS[delivery.status] ?? DELIVERY_STATUS.asignado;
+                const dPos = driverPositionFor(delivery, myCoords, isDriver);
+                const rPos = destinationPositionFor(delivery);
+                const itemDist = calculateDistanceKm(dPos.lat, dPos.lng, rPos.lat, rPos.lng);
 
                 return (
                   <button
@@ -752,20 +834,25 @@ export default function Deliveries() {
                       <span className="text-xs font-bold text-slate-900">
                         {index + 1}. {delivery.order_code}
                       </span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${st.color}`}>
-                        {st.label}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-md bg-blue-100 px-1.5 py-0.5 text-[10px] font-extrabold text-blue-800">
+                          {formatDistance(itemDist)}
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${st.color}`}>
+                          {st.label}
+                        </span>
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs font-medium text-slate-700 truncate">
+                    <p className="mt-1 text-xs font-semibold text-slate-800 truncate">
                       {delivery.restaurant_name}
                     </p>
                     <p className="text-[11px] text-slate-500 truncate">
-                      {delivery.delivery_address || 'Sin dirección especificada'}
+                      {rPos.sector ? `${rPos.sector} · ` : ''}{delivery.delivery_address || 'Bucaramanga'}
                     </p>
                     <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100">
-                      <span>{delivery.driver_name ? delivery.driver_name : 'Sin domiciliario'}</span>
+                      <span className="truncate max-w-[120px]">{delivery.driver_name ? delivery.driver_name : 'Sin domiciliario'}</span>
                       <div className="flex items-center gap-1">
-                        {delivery.vehicle_name && <span className="text-slate-400">{delivery.vehicle_name}</span>}
+                        {delivery.vehicle_name && <span className="text-slate-400 font-mono text-[10px]">{delivery.vehicle_name}</span>}
                         {canManage && (
                           <button
                             onClick={(e) => {

@@ -3,6 +3,7 @@ import { query, pool } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
 import { emitOrder, emitToUser, emitInventoryAlert } from '../lib/realtime';
 import { sendEmail } from '../lib/email';
+import { resolveBucaramangaCoords } from '../lib/bucaramangaGeo';
 
 const router = Router();
 router.use(authRequired);
@@ -223,10 +224,11 @@ router.patch('/:id/status', async (req, res, next) => {
       if (!existingDel.rowCount) {
         const code = `DEL-${Date.now().toString(36).toUpperCase()}`;
         const confirmationCode = String(Math.floor(1000 + Math.random() * 9000));
+        const coords = resolveBucaramangaCoords(order.delivery_address, order.id);
         await query(
           `INSERT INTO deliveries (delivery_code, order_id, restaurant_id, delivery_address, status, confirmation_code, dest_lat, dest_lng)
-           VALUES ($1, $2, $3, $4, $5, $6, 7.1250, -73.1190)`,
-          [code, order.id, order.restaurant_id, order.delivery_address || 'Bucaramanga', status === 'en_camino' ? 'en_camino' : 'asignado', confirmationCode]
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [code, order.id, order.restaurant_id, order.delivery_address || coords.address, status === 'en_camino' ? 'en_camino' : 'asignado', confirmationCode, coords.lat, coords.lng]
         );
       } else if (status === 'en_camino' && existingDel.rows[0].status === 'asignado') {
         await query("UPDATE deliveries SET status = 'en_camino', updated_at = CURRENT_TIMESTAMP WHERE order_id = $1", [order.id]);
