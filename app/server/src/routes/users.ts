@@ -11,20 +11,33 @@ router.get('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req,
     const user = req.user!;
     const params: unknown[] = [];
     let sql = `SELECT u.id, u.username, u.name, u.email, u.phone, u.is_active, u.last_login,
-                      u.created_at, r.name AS role_name, r.id AS role_id
+                      u.created_at, u.supplier_id, u.restaurant_id,
+                      r.name AS role_name, COALESCE(r.display_name, r.name) AS role_label, r.id AS role_id
                FROM users u
                JOIN roles r ON r.id = u.role_id
                WHERE 1=1`;
-    if (user.role === 'proveedor_admin' && user.supplier_id) {
-      params.push(user.supplier_id);
-      sql += ` AND u.supplier_id = $${params.length}`;
+
+    if (user.role === 'proveedor_admin') {
+      if (user.supplier_id) {
+        params.push(user.supplier_id);
+        // Incluir personal del proveedor, cualquier domiciliario o usuarios independientes
+        sql += ` AND (u.supplier_id = $${params.length} OR r.name = 'domiciliario' OR (u.supplier_id IS NULL AND u.restaurant_id IS NULL))`;
+      } else {
+        sql += ` AND (r.name = 'domiciliario' OR u.supplier_id IS NULL)`;
+      }
     } else if (user.restaurant_id) {
       params.push(user.restaurant_id);
-      sql += ` AND u.restaurant_id = $${params.length}`;
+      // Incluir personal del restaurante o domiciliarios disponibles
+      sql += ` AND (u.restaurant_id = $${params.length} OR r.name = 'domiciliario')`;
     } else if (user.role !== 'admin') {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    sql += ' ORDER BY u.created_at DESC';
+
+    sql += ` ORDER BY 
+      (CASE WHEN r.name = 'domiciliario' THEN 0 ELSE 1 END),
+      u.is_active DESC,
+      u.created_at DESC`;
+
     const result = await query(sql, params);
     res.json(result.rows);
   } catch (err) {
@@ -39,20 +52,26 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
     if (!username || !password || !name || !role_id) {
       return res.status(400).json({ error: 'username, password, name y role_id son requeridos' });
     }
+
+    const numericRoleId = Number(role_id);
     const allowedRoles = user.role === 'proveedor_admin'
-      ? [5]
+      ? [4, 5]
       : user.restaurant_id
         ? [2, 3, 5]
         : [1, 2, 3, 4, 5];
-    if (!allowedRoles.includes(role_id)) {
+
+    if (!allowedRoles.includes(numericRoleId)) {
       return res.status(403).json({ error: 'No puedes crear usuarios con ese rol' });
     }
-    const exists = await query('SELECT id FROM users WHERE username = $1', [username]);
-    if (exists.rowCount) return res.status(409).json({ error: 'El usuario ya existe' });
+
+    const exists = await query('SELECT id FROM users WHERE username = $1', [username.trim()]);
+    if (exists.rowCount) return res.status(409).json({ error: 'El nombre de usuario ya existe' });
+
     const hash = await bcrypt.hash(String(password), 10);
     let restaurantId = user.restaurant_id;
     let supplierId = user.supplier_id;
     let branchId = user.branch_id;
+
     if (user.role === 'admin' && req.body.restaurant_id) {
       restaurantId = req.body.restaurant_id;
       branchId = req.body.branch_id ?? null;
@@ -60,12 +79,14 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
     if (user.role === 'admin' && req.body.supplier_id) {
       supplierId = req.body.supplier_id;
     }
+
     const result = await query(
       `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, is_active, created_at`,
-      [username, hash, name, email ?? null, phone ?? null, role_id, restaurantId, supplierId, branchId]
+      [username.trim(), hash, name.trim(), email ? email.trim() : null, phone ? phone.trim() : null, numericRoleId, restaurantId, supplierId, branchId]
     );
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     next(err);
@@ -79,22 +100,27 @@ router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (r
     const target = await query('SELECT * FROM users WHERE id = $1', [req.params.id]);
     if (!target.rowCount) return res.status(404).json({ error: 'Usuario no encontrado' });
     const targetUser = target.rows[0];
-    if (user.role === 'proveedor_admin' && targetUser.supplier_id !== user.supplier_id) {
+
+    const isDomiciliario = targetUser.role_id === 5;
+    if (user.role === 'proveedor_admin' && !isDomiciliario && targetUser.supplier_id !== user.supplier_id) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    if (user.restaurant_id && targetUser.restaurant_id !== user.restaurant_id) {
+    if (user.restaurant_id && !isDomiciliario && targetUser.restaurant_id !== user.restaurant_id) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    if (role_id && role_id !== targetUser.role_id) {
+
+    const numericRoleId = role_id ? Number(role_id) : undefined;
+    if (numericRoleId && numericRoleId !== targetUser.role_id) {
       const allowedRoles = user.role === 'proveedor_admin'
-        ? [5]
+        ? [4, 5]
         : user.restaurant_id
           ? [2, 3, 5]
           : [1, 2, 3, 4, 5];
-      if (!allowedRoles.includes(role_id)) {
+      if (!allowedRoles.includes(numericRoleId)) {
         return res.status(403).json({ error: 'No puedes asignar ese rol' });
       }
     }
+
     const result = await query(
       `UPDATE users
        SET name = COALESCE($2, name), email = COALESCE($3, email),
@@ -102,7 +128,7 @@ router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (r
            role_id = COALESCE($6, role_id), updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, is_active, created_at`,
-      [req.params.id, name, email, phone, is_active, role_id]
+      [req.params.id, name, email, phone, is_active, numericRoleId]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -116,10 +142,12 @@ router.delete('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async
     const target = await query('SELECT * FROM users WHERE id = $1', [req.params.id]);
     if (!target.rowCount) return res.status(404).json({ error: 'Usuario no encontrado' });
     const targetUser = target.rows[0];
-    if (user.role === 'proveedor_admin' && targetUser.supplier_id !== user.supplier_id) {
+
+    const isDomiciliario = targetUser.role_id === 5;
+    if (user.role === 'proveedor_admin' && !isDomiciliario && targetUser.supplier_id !== user.supplier_id) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    if (user.restaurant_id && targetUser.restaurant_id !== user.restaurant_id) {
+    if (user.restaurant_id && !isDomiciliario && targetUser.restaurant_id !== user.restaurant_id) {
       return res.status(403).json({ error: 'No autorizado' });
     }
     if (targetUser.id === user.id) {
@@ -142,10 +170,12 @@ router.patch('/:id/password', roleRequired('admin', 'gerente', 'proveedor_admin'
     const target = await query('SELECT * FROM users WHERE id = $1', [req.params.id]);
     if (!target.rowCount) return res.status(404).json({ error: 'Usuario no encontrado' });
     const targetUser = target.rows[0];
-    if (user.role === 'proveedor_admin' && targetUser.supplier_id !== user.supplier_id) {
+
+    const isDomiciliario = targetUser.role_id === 5;
+    if (user.role === 'proveedor_admin' && !isDomiciliario && targetUser.supplier_id !== user.supplier_id) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    if (user.restaurant_id && targetUser.restaurant_id !== user.restaurant_id) {
+    if (user.restaurant_id && !isDomiciliario && targetUser.restaurant_id !== user.restaurant_id) {
       return res.status(403).json({ error: 'No autorizado' });
     }
     const hash = await bcrypt.hash(String(password), 10);

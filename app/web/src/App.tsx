@@ -39,7 +39,7 @@ export default function App() {
   return (
     <div className="min-h-screen">
       {user && <Navbar />}
-      <main className={user ? 'mx-auto max-w-7xl px-4 py-6' : ''}>
+      <main className={user ? 'mx-auto max-w-7xl px-4 py-6 pb-24 lg:pb-6' : ''}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />

@@ -1,6 +1,7 @@
 export interface User {
   id: number;
   username: string;
+  name?: string;
   role: string;
   role_id: number;
   restaurant_id: number | null;
