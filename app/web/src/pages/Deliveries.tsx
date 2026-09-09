@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Delivery, Vehicle } from '../types';
@@ -256,7 +257,8 @@ export default function Deliveries() {
   const [selected, setSelected] = useState<Delivery | null>(null);
   const [modalVehicle, setModalVehicle] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<{ id: number; name: string; username: string; phone?: string }[]>([]);
+  const [drivers, setDrivers] = useState<{ id: number; name: string; username: string; phone?: string; role_label?: string; role_name?: string }[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [vehicleForm, setVehicleForm] = useState({ name: '', plate: '', type: 'moto', driver_name: '', imei: '' });
 
   // Telemetría GPS en tiempo real
@@ -276,6 +278,7 @@ export default function Deliveries() {
 
   const isSupplier = user?.role === 'proveedor_admin';
   const isDriver = user?.role === 'domiciliario';
+  const canManage = isSupplier || user?.role === 'admin' || user?.role === 'gerente';
 
   useEffect(() => {
     localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(deliveries));
@@ -297,9 +300,14 @@ export default function Deliveries() {
         if (stored.length) setDeliveries(stored);
       });
 
-    if (isSupplier) {
+    if (canManage) {
       api<Vehicle[]>('/deliveries/vehicles').then(setVehicles).catch(() => undefined);
-      api<{ id: number; name: string; username: string; phone?: string }[]>('/deliveries/drivers').then(setDrivers).catch(() => undefined);
+      api<{ id: number; name: string; username: string; phone?: string; role_label?: string; role_name?: string }[]>('/deliveries/drivers').then(setDrivers).catch(() => undefined);
+      api<any[]>('/orders').then((allOrders) => {
+        if (Array.isArray(allOrders)) {
+          setPendingOrders(allOrders.filter((o) => !['entregado', 'cancelado'].includes(o.status)));
+        }
+      }).catch(() => undefined);
     }
   };
 
@@ -537,17 +545,58 @@ export default function Deliveries() {
                     <p className="text-[11px] text-slate-500 truncate">
                       📍 {delivery.delivery_address || 'Sin dirección especificada'}
                     </p>
-                    <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-400">
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100">
                       <span>{delivery.driver_name ? `🛵 ${delivery.driver_name}` : '⚠️ Sin domiciliario'}</span>
-                      {delivery.vehicle_name && <span>{delivery.vehicle_name}</span>}
+                      <div className="flex items-center gap-1">
+                        {delivery.vehicle_name && <span className="text-slate-400">{delivery.vehicle_name}</span>}
+                        {canManage && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelected(delivery);
+                              setSelectedDriverId(delivery.driver_id ? String(delivery.driver_id) : '');
+                              setAssignModal(true);
+                            }}
+                            className="rounded-lg bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition"
+                          >
+                            {delivery.driver_name ? '✏️ Cambiar' : '🛵 Asignar'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </button>
                 );
               })}
 
               {activeDeliveries.length === 0 && (
-                <div className="py-12 text-center text-xs text-slate-400">
-                  No tienes entregas pendientes en este momento.
+                <div className="py-6 text-center text-xs text-slate-500 space-y-3">
+                  <p className="font-medium">No tienes entregas en ruta en este momento.</p>
+                  {pendingOrders.length > 0 && canManage && (
+                    <div className="text-left space-y-2 border-t pt-3">
+                      <p className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                        <span>📦</span> Pedidos listos para asignar entrega:
+                      </p>
+                      <div className="space-y-1.5 max-h-[190px] overflow-y-auto pr-0.5">
+                        {pendingOrders.map((po) => (
+                          <div
+                            key={po.id}
+                            className="p-2.5 border border-slate-200 rounded-xl bg-slate-50/90 flex items-center justify-between text-xs hover:bg-slate-100 transition shadow-sm"
+                          >
+                            <div className="truncate pr-2">
+                              <span className="font-bold text-slate-900">{po.order_code}</span>
+                              <p className="text-slate-500 text-[11px] truncate">{po.restaurant_name}</p>
+                            </div>
+                            <Link
+                              to={`/pedidos/${po.id}`}
+                              className="rounded-lg bg-brand px-2.5 py-1 text-white font-bold text-[11px] hover:bg-brand-dark shadow-sm shrink-0"
+                            >
+                              🛵 Asignar
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -590,14 +639,17 @@ export default function Deliveries() {
                 </div>
               )}
 
-              {/* Botones del Proveedor */}
-              {isSupplier && (
+              {/* Botones del Proveedor o Gerente */}
+              {canManage && (
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setAssignModal(true)}
-                    className="flex-1 rounded-xl border border-brand py-1.5 text-xs font-bold text-brand hover:bg-brand hover:text-white"
+                    onClick={() => {
+                      setSelectedDriverId(selected.driver_id ? String(selected.driver_id) : '');
+                      setAssignModal(true);
+                    }}
+                    className="flex-1 rounded-xl bg-indigo-600 py-2 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
                   >
-                    Asignar Repartidor
+                    🛵 Asignar / Cambiar Repartidor
                   </button>
                 </div>
               )}
@@ -691,31 +743,34 @@ export default function Deliveries() {
         </Modal>
       )}
 
-      {/* Modal para asignar repartidor (Proveedor) */}
+      {/* Modal para asignar repartidor (Proveedor / Gerente / Admin) */}
       {assignModal && selected && (
         <Modal title={`Asignar Domiciliario a ${selected.order_code}`} onClose={() => setAssignModal(false)}>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium">Seleccionar Domiciliario:</label>
+              <label className="mb-1 block text-sm font-bold text-slate-700">Seleccionar Domiciliario / Conductor:</label>
               <select
                 value={selectedDriverId}
                 onChange={(e) => setSelectedDriverId(e.target.value)}
-                className="w-full rounded-xl border px-3 py-2 text-sm bg-white"
+                className="w-full rounded-xl border px-3 py-2 text-sm bg-white font-medium"
               >
-                <option value="">-- Elige un domiciliario --</option>
+                <option value="">-- Elige un usuario del sistema --</option>
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name} ({d.username})
+                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'} {d.phone ? `· 📞 ${d.phone}` : ''}
                   </option>
                 ))}
               </select>
+              {drivers.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600">No se encontraron usuarios registrados en el sistema.</p>
+              )}
             </div>
             <button
               onClick={assignDriver}
               disabled={!selectedDriverId}
-              className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+              className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50 shadow transition"
             >
-              Asignar y Notificar
+              Asignar y Notificar al Domiciliario
             </button>
           </div>
         </Modal>
@@ -723,45 +778,72 @@ export default function Deliveries() {
 
       {/* Modal para nuevo vehículo */}
       {modalVehicle && (
-        <Modal title="Nuevo vehículo" onClose={() => setModalVehicle(false)}>
+        <Modal title="Registrar Nuevo Vehículo" onClose={() => setModalVehicle(false)}>
           <div className="space-y-3">
-            <input
-              value={vehicleForm.name}
-              onChange={(e) => setVehicleForm({ ...vehicleForm, name: e.target.value })}
-              placeholder="Nombre (ej: Moto 1)"
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-            />
-            <input
-              value={vehicleForm.plate}
-              onChange={(e) => setVehicleForm({ ...vehicleForm, plate: e.target.value })}
-              placeholder="Placa (ej: ABC-123)"
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-            />
-            <select
-              value={vehicleForm.type}
-              onChange={(e) => setVehicleForm({ ...vehicleForm, type: e.target.value })}
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-            >
-              <option value="moto">Moto</option>
-              <option value="furgon">Furgón</option>
-              <option value="camion">Camión</option>
-              <option value="camioneta">Camioneta</option>
-            </select>
-            <input
-              value={vehicleForm.driver_name}
-              onChange={(e) => setVehicleForm({ ...vehicleForm, driver_name: e.target.value })}
-              placeholder="Conductor predeterminado"
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-            />
-            <input
-              value={vehicleForm.imei}
-              onChange={(e) => setVehicleForm({ ...vehicleForm, imei: e.target.value })}
-              placeholder="IMEI del GPS (15 dígitos, opcional)"
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-            />
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Nombre o Identificador:</label>
+              <input
+                value={vehicleForm.name}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, name: e.target.value })}
+                placeholder="Ej: Moto Domicilios 1, Furgón Norte"
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Placa:</label>
+              <input
+                value={vehicleForm.plate}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, plate: e.target.value })}
+                placeholder="Ej: ABC-123"
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Tipo de Vehículo:</label>
+              <select
+                value={vehicleForm.type}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, type: e.target.value })}
+                className="w-full rounded-xl border px-3 py-2 text-sm bg-white"
+              >
+                <option value="moto">Moto</option>
+                <option value="furgon">Furgón</option>
+                <option value="camion">Camión</option>
+                <option value="camioneta">Camioneta</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Conductor Asignado:</label>
+              <select
+                value={vehicleForm.driver_name}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, driver_name: e.target.value })}
+                className="w-full rounded-xl border px-3 py-2 text-sm bg-white"
+              >
+                <option value="">-- Seleccionar de los usuarios registrados --</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={vehicleForm.driver_name}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, driver_name: e.target.value })}
+                placeholder="O escribir nombre manualmente si no está en la lista"
+                className="w-full rounded-xl border px-3 py-1.5 text-xs text-slate-600 mt-1.5"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">IMEI del GPS (opcional):</label>
+              <input
+                value={vehicleForm.imei}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, imei: e.target.value })}
+                placeholder="IMEI del GPS (15 dígitos, opcional)"
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+              />
+            </div>
             <button
               onClick={createVehicle}
-              className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark"
+              className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark shadow transition"
             >
               Guardar vehículo
             </button>

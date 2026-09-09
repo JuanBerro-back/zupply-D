@@ -77,14 +77,14 @@ router.get('/vehicles', roleRequired('proveedor_admin', 'admin'), async (req, re
   }
 });
 
-router.get('/drivers', roleRequired('proveedor_admin', 'admin'), async (_req, res, next) => {
+router.get('/drivers', roleRequired('proveedor_admin', 'admin', 'gerente'), async (_req, res, next) => {
   try {
     const result = await query(
-      `SELECT u.id, u.name, u.username, u.phone
+      `SELECT u.id, u.name, u.username, u.phone, u.email, r.name AS role_name, r.display_name AS role_label
        FROM users u
        JOIN roles r ON r.id = u.role_id
-       WHERE r.name = 'domiciliario' AND u.is_active = TRUE
-       ORDER BY u.name`
+       WHERE u.is_active = TRUE
+       ORDER BY (r.name = 'domiciliario') DESC, u.name ASC`
     );
     res.json(result.rows);
   } catch (err) {
@@ -115,47 +115,89 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', roleRequired('proveedor_admin', 'admin'), async (req, res, next) => {
+router.post('/', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
   try {
     const user = req.user!;
-    if (!user.supplier_id) return res.status(403).json({ error: 'Solo proveedores crean entregas' });
     const { order_id, vehicle_id, driver_id, delivery_address, scheduled_time, notes, items, dest_lat, dest_lng } = req.body;
-    const order = await query(
-      'SELECT * FROM orders WHERE id = $1 AND supplier_id = $2',
-      [order_id, user.supplier_id]
-    );
-    if (!order.rowCount) return res.status(404).json({ error: 'Pedido no encontrado' });
-    const code = `DEL-${Date.now().toString(36).toUpperCase()}`;
-    const confirmationCode = String(Math.floor(1000 + Math.random() * 9000));
-    const result = await query(
-      `INSERT INTO deliveries (delivery_code, order_id, vehicle_id, driver_id, restaurant_id,
-         delivery_address, scheduled_time, notes, confirmation_code, dest_lat, dest_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [code, order_id, vehicle_id || null, driver_id || null, order.rows[0].restaurant_id,
-       delivery_address ?? order.rows[0].delivery_address, scheduled_time || null, notes, confirmationCode,
-       dest_lat || 7.1250, dest_lng || -73.1190]
-    );
-    if (Array.isArray(items)) {
-      for (const it of items) {
-        await query(
-          `INSERT INTO delivery_items (delivery_id, product_name, quantity, unit) VALUES ($1, $2, $3, $4)`,
-          [result.rows[0].id, it.product_name, it.quantity, it.unit]
-        );
+    const orderParams: unknown[] = [order_id];
+    let orderSql = 'SELECT * FROM orders WHERE id = $1';
+    if (user.role === 'proveedor_admin' && user.supplier_id) {
+      orderParams.push(user.supplier_id);
+      orderSql += ` AND supplier_id = $${orderParams.length}`;
+    }
+    const order = await query(orderSql, orderParams);
+    if (!order.rowCount) return res.status(404).json({ error: 'Pedido no encontrado o no autorizado' });
+
+    // Verificar si ya existe una entrega para este pedido
+    const existing = await query('SELECT * FROM deliveries WHERE order_id = $1', [order_id]);
+    let deliveryRow;
+
+    if (existing.rowCount) {
+      // Actualizar la entrega existente
+      const updated = await query(
+        `UPDATE deliveries
+         SET vehicle_id = COALESCE($1, vehicle_id),
+             driver_id = COALESCE($2, driver_id),
+             delivery_address = COALESCE($3, delivery_address),
+             scheduled_time = COALESCE($4, scheduled_time),
+             notes = COALESCE($5, notes),
+             dest_lat = COALESCE($6, dest_lat),
+             dest_lng = COALESCE($7, dest_lng),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $8 RETURNING *`,
+        [vehicle_id ? Number(vehicle_id) : null,
+         driver_id ? Number(driver_id) : null,
+         delivery_address ?? order.rows[0].delivery_address,
+         scheduled_time || null, notes,
+         dest_lat || 7.1250, dest_lng || -73.1190,
+         existing.rows[0].id]
+      );
+      deliveryRow = updated.rows[0];
+    } else {
+      // Insertar nueva entrega
+      const code = `DEL-${Date.now().toString(36).toUpperCase()}`;
+      const confirmationCode = String(Math.floor(1000 + Math.random() * 9000));
+      const result = await query(
+        `INSERT INTO deliveries (delivery_code, order_id, vehicle_id, driver_id, restaurant_id,
+           delivery_address, scheduled_time, notes, confirmation_code, dest_lat, dest_lng)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+        [code, order_id, vehicle_id ? Number(vehicle_id) : null, driver_id ? Number(driver_id) : null, order.rows[0].restaurant_id,
+         delivery_address ?? order.rows[0].delivery_address, scheduled_time || null, notes, confirmationCode,
+         dest_lat || 7.1250, dest_lng || -73.1190]
+      );
+      deliveryRow = result.rows[0];
+      if (Array.isArray(items)) {
+        for (const it of items) {
+          await query(
+            `INSERT INTO delivery_items (delivery_id, product_name, quantity, unit) VALUES ($1, $2, $3, $4)`,
+            [deliveryRow.id, it.product_name, it.quantity, it.unit]
+          );
+        }
       }
     }
+
+    // Si se asignó conductor y el pedido estaba en nuevo/confirmado/preparando, avanzar a despachado
+    if (driver_id && ['nuevo', 'confirmado', 'preparando'].includes(order.rows[0].status)) {
+      await query("UPDATE orders SET status = 'despachado', dispatched_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1", [order_id]);
+      const updatedOrder = await query(`${deliverySelect()} WHERE d.id = $1`, [deliveryRow.id]);
+      emitOrder('order:updated', updatedOrder.rows[0]);
+    }
+
     if (driver_id) {
-      emitToUser('notification:created', driver_id, {
-        message: `Se te asignó la entrega ${code} del pedido ${order.rows[0].order_code}`,
-        delivery_id: result.rows[0].id,
+      emitToUser('notification:created', Number(driver_id), {
+        message: `Se te asignó la entrega ${deliveryRow.delivery_code} del pedido ${order.rows[0].order_code}`,
+        delivery_id: deliveryRow.id,
       });
     }
-    res.status(201).json(result.rows[0]);
+
+    emitOrder('delivery:status', { delivery_id: deliveryRow.id, status: deliveryRow.status, delivery_code: deliveryRow.delivery_code });
+    res.status(existing.rowCount ? 200 : 201).json(deliveryRow);
   } catch (err) {
     next(err);
   }
 });
 
-router.patch('/:id/assign', roleRequired('proveedor_admin', 'admin'), async (req, res, next) => {
+router.patch('/:id/assign', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
   try {
     const user = req.user!;
     const { driver_id } = req.body;
@@ -174,24 +216,35 @@ router.patch('/:id/assign', roleRequired('proveedor_admin', 'admin'), async (req
        WHERE u.id = $1 AND u.is_active = TRUE`,
       [driver_id]
     );
-    if (!driver.rowCount || driver.rows[0].role_name !== 'domiciliario') {
-      return res.status(400).json({ error: 'El usuario debe ser un domiciliario activo' });
+    if (!driver.rowCount) {
+      return res.status(400).json({ error: 'El usuario seleccionado no existe o está inactivo' });
     }
-    const confirmationCode = String(Math.floor(1000 + Math.random() * 9000));
+    const confirmationCode = del.confirmation_code || String(Math.floor(1000 + Math.random() * 9000));
     const result = await query(
       `UPDATE deliveries SET driver_id = $1, confirmation_code = $2, updated_at = CURRENT_TIMESTAMP
        WHERE id = $3 RETURNING *`,
       [driver_id, confirmationCode, req.params.id]
     );
+
+    // Sincronizar estado del pedido a despachado si aún no lo estaba
+    const currentOrder = await query('SELECT id, status, order_code FROM orders WHERE id = $1', [del.order_id]);
+    if (currentOrder.rowCount && ['nuevo', 'confirmado', 'preparando'].includes(currentOrder.rows[0].status)) {
+      await query("UPDATE orders SET status = 'despachado', dispatched_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1", [del.order_id]);
+      const updatedOrder = await query(
+        `SELECT o.*, r.name AS restaurant_name, s.name AS supplier_name
+         FROM orders o JOIN restaurants r ON r.id = o.restaurant_id JOIN suppliers s ON s.id = o.supplier_id
+         WHERE o.id = $1`,
+        [del.order_id]
+      );
+      emitOrder('order:updated', updatedOrder.rows[0]);
+    }
+
     emitToUser('notification:created', driver_id, {
       message: `Se te asignó la entrega ${del.delivery_code}`,
       delivery_id: del.id,
       confirmation_code: confirmationCode,
     });
-    const order = await query('SELECT order_code FROM orders WHERE id = $1', [del.order_id]);
-    emitToUser('notification:created', del.driver_id ?? 0, {
-      message: `Entrega ${del.delivery_code} asignada a ${driver.rows[0].name}`,
-    });
+    emitOrder('delivery:status', { delivery_id: del.id, status: result.rows[0].status, delivery_code: del.delivery_code });
     res.json(result.rows[0]);
   } catch (err) {
     next(err);
@@ -221,6 +274,16 @@ router.patch('/:id/status', async (req, res, next) => {
       `UPDATE deliveries SET status = $1, updated_at = CURRENT_TIMESTAMP${deliveredSql} WHERE id = $2 RETURNING *`,
       [status, req.params.id]
     );
+    if (status === 'en_camino') {
+      await query("UPDATE orders SET status = 'en_camino', updated_at = CURRENT_TIMESTAMP WHERE id = $1", [del.order_id]);
+      const updated = await query(
+        `SELECT o.*, r.name AS restaurant_name, s.name AS supplier_name
+         FROM orders o JOIN restaurants r ON r.id = o.restaurant_id JOIN suppliers s ON s.id = o.supplier_id
+         WHERE o.id = $1`,
+        [del.order_id]
+      );
+      emitOrder('order:updated', updated.rows[0]);
+    }
     if (status === 'entregado') {
       await query("UPDATE orders SET status = 'entregado', delivered_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1", [del.order_id]);
       const updated = await query(

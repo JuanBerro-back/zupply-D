@@ -21,10 +21,17 @@ export default function OrderCard({ order, isSupplier }: { order: Order; isSuppl
           <p className="mt-1 font-bold text-brand">{formatMoney(order.total)}</p>
         </div>
       </div>
-      <p className="mt-1 text-xs text-gray-400">
-        {formatDate(order.created_at)}
-        {order.items?.length ? ` · ${order.items.length} producto(s)` : ''}
-      </p>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-gray-400 border-t pt-2">
+        <span>
+          {formatDate(order.created_at)}
+          {order.items?.length ? ` · ${order.items.length} producto(s)` : ''}
+        </span>
+        {['despachado', 'en_camino'].includes(order.status) && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+            🛵 En ruta GPS
+          </span>
+        )}
+      </div>
     </Link>
   );
 }

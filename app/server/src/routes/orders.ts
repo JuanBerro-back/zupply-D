@@ -217,6 +217,24 @@ router.patch('/:id/status', async (req, res, next) => {
       }
     }
 
+    // Asegurar que exista un registro de entrega para seguimiento GPS cuando el pedido se despacha o se pone en camino
+    if (['despachado', 'en_camino'].includes(status)) {
+      const existingDel = await query('SELECT id, status FROM deliveries WHERE order_id = $1', [order.id]);
+      if (!existingDel.rowCount) {
+        const code = `DEL-${Date.now().toString(36).toUpperCase()}`;
+        const confirmationCode = String(Math.floor(1000 + Math.random() * 9000));
+        await query(
+          `INSERT INTO deliveries (delivery_code, order_id, restaurant_id, delivery_address, status, confirmation_code, dest_lat, dest_lng)
+           VALUES ($1, $2, $3, $4, $5, $6, 7.1250, -73.1190)`,
+          [code, order.id, order.restaurant_id, order.delivery_address || 'Bucaramanga', status === 'en_camino' ? 'en_camino' : 'asignado', confirmationCode]
+        );
+      } else if (status === 'en_camino' && existingDel.rows[0].status === 'asignado') {
+        await query("UPDATE deliveries SET status = 'en_camino', updated_at = CURRENT_TIMESTAMP WHERE order_id = $1", [order.id]);
+      }
+    } else if (status === 'entregado') {
+      await query("UPDATE deliveries SET status = 'entregado', actual_delivery_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE order_id = $1 AND status != 'entregado'", [order.id]);
+    }
+
     await query(
       `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_values)
        VALUES ($1, 'status', 'order', $2, $3::jsonb)`,

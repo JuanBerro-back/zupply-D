@@ -93,6 +93,7 @@ export interface Order {
   supplier_email?: string;
   restaurant_email?: string;
   items: OrderItem[];
+  deliveries?: Delivery[];
 }
 
 export interface InventoryItem {
@@ -180,6 +181,9 @@ export interface Delivery {
   gps_last_seen?: string | null;
   driver_id?: number | null;
   driver_name: string;
+  driver_phone?: string | null;
+  restaurant_phone?: string | null;
+  notes?: string | null;
   confirmation_code?: string | null;
   restaurant_name: string;
   delivery_address: string;
