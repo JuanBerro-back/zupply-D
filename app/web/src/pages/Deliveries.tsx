@@ -6,10 +6,11 @@ import { DELIVERY_STATUS, formatDate } from '../lib/constants';
 import Modal from '../components/Modal';
 import { useNotifications } from '../context/NotificationContext';
 import { getSocket } from '../lib/socket';
-import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet';
+import { CircleMarker, MapContainer, Popup, TileLayer, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 type PositionEvent = { delivery_id: number; lat: number; lng: number; speed?: number | null };
+const DELIVERY_STORAGE_KEY = 'zupply_deliveries_route_v1';
 
 function positionFor(delivery: Delivery, index: number) {
   const lat = Number(delivery.vehicle_lat);
@@ -20,10 +21,12 @@ function positionFor(delivery: Delivery, index: number) {
 
 function LiveMap({ deliveries, selectedId, onSelect }: { deliveries: Delivery[]; selectedId?: number; onSelect: (delivery: Delivery) => void }) {
   const active = deliveries.filter((delivery) => delivery.status !== 'entregado' && delivery.status !== 'fallido');
+  const route = active.map((delivery, index) => [positionFor(delivery, index).lat, positionFor(delivery, index).lng] as [number, number]);
   return (
     <div className="relative min-h-[360px] overflow-hidden rounded-xl border border-slate-300 shadow-inner">
       <MapContainer center={[7.1193, -73.1227]} zoom={13} className="h-[360px] w-full">
         <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {route.length > 1 && <Polyline pathOptions={{ color: '#2563eb', weight: 4, opacity: 0.8 }} positions={route} />}
         {active.map((delivery, index) => {
           const point = positionFor(delivery, index);
           const selected = delivery.id === selectedId;
@@ -52,10 +55,22 @@ function LiveMap({ deliveries, selectedId, onSelect }: { deliveries: Delivery[];
   );
 }
 
+function loadPersistedDeliveries(): Delivery[] {
+  try {
+    const raw = localStorage.getItem(DELIVERY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number'));
+  } catch {
+    return [];
+  }
+}
+
 export default function Deliveries() {
   const { user } = useAuth();
   const { push } = useNotifications();
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>(loadPersistedDeliveries);
   const [selected, setSelected] = useState<Delivery | null>(null);
   const [modalVehicle, setModalVehicle] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -65,8 +80,22 @@ export default function Deliveries() {
 
   const isSupplier = user?.role === 'proveedor_admin';
 
+  useEffect(() => {
+    localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(deliveries));
+  }, [deliveries]);
+
   const load = () => {
-    api<Delivery[]>('/deliveries').then(setDeliveries).catch(console.error);
+    api<Delivery[]>('/deliveries')
+      .then((next) => {
+        const normalized = Array.isArray(next) ? next.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number')) : [];
+        setDeliveries(normalized);
+        localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(normalized));
+      })
+      .catch((err) => {
+        console.error(err);
+        const stored = loadPersistedDeliveries();
+        if (stored.length) setDeliveries(stored);
+      });
     if (user?.supplier_id) {
       api<Vehicle[]>('/deliveries/vehicles').then(setVehicles).catch(() => undefined);
     }
@@ -93,8 +122,8 @@ export default function Deliveries() {
 
   useEffect(() => {
     if (user?.role !== 'domiciliario' || !navigator.geolocation) return;
-    const activeDelivery = deliveries.find((delivery) => delivery.status !== 'entregado' && delivery.status !== 'fallido');
-    if (!activeDelivery) return;
+    const activeDelivery = deliveries.find((delivery) => delivery && typeof delivery.id === 'number' && delivery.status !== 'entregado' && delivery.status !== 'fallido');
+    if (!activeDelivery || typeof activeDelivery.id !== 'number') return;
     const watchId = navigator.geolocation.watchPosition(
       ({ coords }) => {
         setGpsStatus('GPS conectado');

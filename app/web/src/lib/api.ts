@@ -1,5 +1,5 @@
 const TOKEN_KEY = 'zupply_token';
-const API_ORIGIN = import.meta.env.VITE_API_URL ?? '';
+const API_ORIGIN = import.meta.env.VITE_API_URL ?? 'http://192.168.1.65:4000';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

@@ -24,11 +24,11 @@ export function createApp() {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+
   app.use(
     cors({
       origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
-        if (!origin || configuredOrigins.includes('*') || configuredOrigins.includes(origin) || /^https?:\/\/(localhost|127\.0.0.1)(:\d+)?$/.test(origin)) return cb(null, true);
-        return cb(null, false);
+        return cb(null, true);
       },
       credentials: true,
     })

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { CartItem, Product } from '../types';
 
 interface CartContextValue {
@@ -12,9 +12,25 @@ interface CartContextValue {
 }
 
 const CartContext = createContext<CartContextValue>(null!);
+const CART_STORAGE_KEY = 'zupply_cart_v1';
+
+function loadCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as CartItem[];
+    return parsed.filter((i) => i && i.product && typeof i.product.id === 'number' && typeof i.quantity === 'number');
+  } catch {
+    return [];
+  }
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(loadCart);
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
 
   const add = (product: Product, quantity: number) => {
     setItems((prev) => {

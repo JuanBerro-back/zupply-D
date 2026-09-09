@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { getToken } from './api';
 
 let socket: Socket | null = null;
+const SOCKET_ORIGIN = import.meta.env.VITE_API_URL ?? 'http://192.168.1.65:4000';
 
 export function connectSocket(opts: {
   userId?: number | null;
@@ -9,7 +10,7 @@ export function connectSocket(opts: {
   supplierId?: number | null;
 }): Socket {
   if (socket) return socket;
-  socket = io(import.meta.env.VITE_API_URL || undefined, {
+  socket = io(SOCKET_ORIGIN, {
     auth: { token: getToken() },
     query: {
       ...(opts.userId ? { userId: String(opts.userId) } : {}),

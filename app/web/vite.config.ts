@@ -7,8 +7,8 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
-      '/api': { target: 'http://localhost:4000', changeOrigin: true },
-      '/socket.io': { target: 'http://localhost:4000', ws: true },
+      '/api': { target: 'http://192.168.1.65:4000', changeOrigin: true },
+      '/socket.io': { target: 'http://192.168.1.65:4000', ws: true },
     },
   },
 });
