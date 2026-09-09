@@ -25,3 +25,8 @@ Thumbs.db
 # Local PostgreSQL installation
 pg/
 node/
+
+# Android releases and keystores
+dist-apk/
+release-manual/
+*.jks

@@ -1,8 +1,7 @@
 import { io, Socket } from 'socket.io-client';
-import { getToken } from './api';
+import { getToken, getApiOrigin } from './api';
 
 let socket: Socket | null = null;
-const SOCKET_ORIGIN = import.meta.env.VITE_API_URL || undefined;
 
 export function connectSocket(opts: {
   userId?: number | null;
@@ -10,7 +9,8 @@ export function connectSocket(opts: {
   supplierId?: number | null;
 }): Socket {
   if (socket) return socket;
-  socket = io(SOCKET_ORIGIN, {
+  const origin = getApiOrigin() || undefined;
+  socket = io(origin, {
     auth: { token: getToken() },
     query: {
       ...(opts.userId ? { userId: String(opts.userId) } : {}),
