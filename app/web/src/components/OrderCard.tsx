@@ -27,8 +27,9 @@ export default function OrderCard({ order, isSupplier }: { order: Order; isSuppl
           {order.items?.length ? ` · ${order.items.length} producto(s)` : ''}
         </span>
         {['despachado', 'en_camino'].includes(order.status) && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[11px] font-bold text-blue-700">
-            🛵 En ruta GPS
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-200 px-2.5 py-0.5 text-[11px] font-bold text-sky-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
+            En ruta GPS
           </span>
         )}
       </div>

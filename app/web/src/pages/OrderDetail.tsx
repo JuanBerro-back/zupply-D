@@ -120,9 +120,22 @@ export default function OrderDetail() {
           </table>
           <div className="mt-4 flex justify-end text-lg font-bold">Total: {formatMoney(order.total)}</div>
           {order.notes && <p className="mt-3 rounded-lg bg-gray-50 p-2.5 text-sm text-gray-600">Notas: {order.notes}</p>}
-          {order.delivery_address && <p className="mt-2 text-sm text-gray-600">📍 Dirección de entrega: {order.delivery_address}</p>}
+          {order.delivery_address && (
+            <p className="mt-2 text-sm text-gray-600 flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span><b>Dirección de entrega:</b> {order.delivery_address}</span>
+            </p>
+          )}
           {order.requested_delivery_date && (
-            <p className="mt-1 text-sm text-gray-600">📅 Entrega solicitada: {formatDate(order.requested_delivery_date)}</p>
+            <p className="mt-1 text-sm text-gray-600 flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span><b>Entrega solicitada:</b> {formatDate(order.requested_delivery_date)}</span>
+            </p>
           )}
         </div>
 
@@ -131,7 +144,11 @@ export default function OrderDetail() {
           <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">🛵</span>
+                <div className="h-8 w-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">Seguimiento de Entrega GPS</h3>
                   <p className="text-xs text-slate-500 font-mono">Código: {latestDelivery.delivery_code}</p>
@@ -148,7 +165,7 @@ export default function OrderDetail() {
                 {latestDelivery.driver_name ? (
                   <span className="font-semibold text-blue-700">{latestDelivery.driver_name}</span>
                 ) : (
-                  <span className="text-amber-600 font-medium">⚠️ Sin domiciliario asignado</span>
+                  <span className="text-amber-600 font-medium">Sin domiciliario asignado</span>
                 )}
               </p>
               {latestDelivery.driver_phone && (
@@ -172,7 +189,10 @@ export default function OrderDetail() {
                 to="/entregas"
                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition"
               >
-                🗺️ Ver en Mapa GPS en Tiempo Real
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <span>Ver en Mapa GPS en Tiempo Real</span>
               </Link>
               {canManageDelivery && (
                 <button
@@ -216,7 +236,10 @@ export default function OrderDetail() {
             onClick={() => setDeliveryModal(true)}
             className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white hover:bg-indigo-700 shadow-md flex items-center justify-center gap-2 transition"
           >
-            🛵 Asignar Domiciliario al Pedido
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span>Asignar Domiciliario al Pedido</span>
           </button>
         )}
 
@@ -260,7 +283,7 @@ export default function OrderDetail() {
                 <option value="">-- Elige un usuario del sistema --</option>
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'} {d.phone ? `· 📞 ${d.phone}` : ''}
+                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'} {d.phone ? `· Tel: ${d.phone}` : ''}
                   </option>
                 ))}
               </select>

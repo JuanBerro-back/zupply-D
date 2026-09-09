@@ -81,7 +81,9 @@ function RecenterControl({ target }: { target: { lat: number; lng: number } | nu
         className="flex items-center gap-1.5 rounded-xl bg-white/95 px-3 py-2 text-xs font-bold text-blue-700 shadow-lg border border-blue-200 hover:bg-blue-50 active:scale-95 transition backdrop-blur-sm cursor-pointer"
         title="Centrar mapa en mi ubicación actual"
       >
-        <span className="text-base leading-none">🎯</span>
+        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         <span>Mi Ubicación</span>
       </button>
     </div>
@@ -191,8 +193,9 @@ function LiveMap({
             >
               <Popup>
                 <div className="text-xs p-1">
-                  <p className="font-bold text-blue-700 flex items-center gap-1">
-                    <span>📍</span> Mi Posición Actual
+                  <p className="font-bold text-blue-700 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+                    <span>Mi Posición Actual</span>
                   </p>
                   <p className="text-[11px] text-slate-600">
                     {myCoords.lat.toFixed(6)}, {myCoords.lng.toFixed(6)}
@@ -221,7 +224,7 @@ function LiveMap({
 
           return (
             <div key={delivery.id}>
-              {/* Marcador del Domiciliario (🛵) */}
+              {/* Marcador del Domiciliario */}
               <CircleMarker
                 center={[driverPos.lat, driverPos.lng]}
                 radius={isSelected ? 13 : 9}
@@ -235,7 +238,7 @@ function LiveMap({
               >
                 <Popup>
                   <div className="text-xs">
-                    <p className="font-bold text-sky-700">🛵 Repartidor en ruta</p>
+                    <p className="font-bold text-sky-700">Repartidor en ruta</p>
                     <p className="font-semibold">{delivery.driver_name || 'Sin asignar'}</p>
                     <p>Pedido: {delivery.order_code}</p>
                     {liveSpeed != null && <p>Velocidad: {liveSpeed} km/h</p>}
@@ -243,7 +246,7 @@ function LiveMap({
                 </Popup>
               </CircleMarker>
 
-              {/* Marcador de Destino (📍) */}
+              {/* Marcador de Destino */}
               {isSelected && (
                 <CircleMarker
                   center={[destPos.lat, destPos.lng]}
@@ -257,7 +260,7 @@ function LiveMap({
                 >
                   <Popup>
                     <div className="text-xs">
-                      <p className="font-bold text-emerald-700">📍 Destino de Entrega</p>
+                      <p className="font-bold text-emerald-700">Destino de Entrega</p>
                       <p className="font-semibold">{delivery.restaurant_name}</p>
                       <p className="text-slate-600">{delivery.delivery_address}</p>
                     </div>
@@ -294,10 +297,13 @@ function LiveMap({
               href={`https://www.google.com/maps/dir/?api=1&destination=${proximityData.destPos.lat},${proximityData.destPos.lng}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow flex items-center gap-1"
+              className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow flex items-center gap-1.5"
               title="Abrir navegación en Google Maps"
             >
-              🧭 Navegar
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <span>Navegar</span>
             </a>
           </div>
 
@@ -441,13 +447,13 @@ export default function Deliveries() {
         setLiveSpeed(loc.speed ?? null);
         setGpsStatus('activo');
         push({
-          message: `📍 GPS sincronizado (Precisión: ±${loc.accuracy}m)`,
+          message: `GPS sincronizado (Precisión: ±${loc.accuracy}m)`,
           at: new Date().toISOString(),
         });
       } else {
         setGpsStatus('error');
         push({
-          message: '⚠️ No se pudo obtener la posición GPS exacta. Activa la ubicación de tu teléfono.',
+          message: 'No se pudo obtener la posición GPS exacta. Activa la ubicación de tu teléfono.',
           at: new Date().toISOString(),
         });
       }
@@ -674,10 +680,10 @@ export default function Deliveries() {
                       {delivery.restaurant_name}
                     </p>
                     <p className="text-[11px] text-slate-500 truncate">
-                      📍 {delivery.delivery_address || 'Sin dirección especificada'}
+                      {delivery.delivery_address || 'Sin dirección especificada'}
                     </p>
                     <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100">
-                      <span>{delivery.driver_name ? `🛵 ${delivery.driver_name}` : '⚠️ Sin domiciliario'}</span>
+                      <span>{delivery.driver_name ? delivery.driver_name : 'Sin domiciliario'}</span>
                       <div className="flex items-center gap-1">
                         {delivery.vehicle_name && <span className="text-slate-400">{delivery.vehicle_name}</span>}
                         {canManage && (
@@ -690,7 +696,7 @@ export default function Deliveries() {
                             }}
                             className="rounded-lg bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition"
                           >
-                            {delivery.driver_name ? '✏️ Cambiar' : '🛵 Asignar'}
+                            {delivery.driver_name ? 'Cambiar' : 'Asignar'}
                           </button>
                         )}
                       </div>
@@ -705,7 +711,10 @@ export default function Deliveries() {
                   {pendingOrders.length > 0 && canManage && (
                     <div className="text-left space-y-2 border-t pt-3">
                       <p className="font-bold text-slate-800 text-xs flex items-center gap-1">
-                        <span>📦</span> Pedidos listos para asignar entrega:
+                        <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <span>Pedidos listos para asignar entrega:</span>
                       </p>
                       <div className="space-y-1.5 max-h-[190px] overflow-y-auto pr-0.5">
                         {pendingOrders.map((po) => (
@@ -721,7 +730,7 @@ export default function Deliveries() {
                               to={`/pedidos/${po.id}`}
                               className="rounded-lg bg-brand px-2.5 py-1 text-white font-bold text-[11px] hover:bg-brand-dark shadow-sm shrink-0"
                             >
-                              🛵 Asignar
+                              Asignar
                             </Link>
                           </div>
                         ))}
@@ -748,7 +757,7 @@ export default function Deliveries() {
                       onClick={() => changeStatus(selected.id, 'en_camino')}
                       className="col-span-2 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white shadow hover:bg-blue-700"
                     >
-                      🚀 Iniciar Viaje (En Camino)
+                      Iniciar Viaje (En Camino)
                     </button>
                   )}
                   {selected.status === 'en_camino' && (
@@ -756,7 +765,7 @@ export default function Deliveries() {
                       onClick={() => changeStatus(selected.id, 'llegando')}
                       className="col-span-2 rounded-xl bg-amber-500 py-2 text-xs font-bold text-white shadow hover:bg-amber-600"
                     >
-                      🛵 Estoy Llegando al Destino
+                      Estoy Llegando al Destino
                     </button>
                   )}
                   {selected.status !== 'entregado' && (
@@ -764,7 +773,7 @@ export default function Deliveries() {
                       onClick={() => setConfirmModal(true)}
                       className="col-span-2 rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white shadow hover:bg-emerald-700"
                     >
-                      📦 Confirmar Entrega (Código)
+                      Confirmar Entrega (Código)
                     </button>
                   )}
                 </div>
@@ -780,7 +789,7 @@ export default function Deliveries() {
                     }}
                     className="flex-1 rounded-xl bg-indigo-600 py-2 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
                   >
-                    🛵 Asignar / Cambiar Repartidor
+                    Asignar / Cambiar Repartidor
                   </button>
                 </div>
               )}
@@ -888,7 +897,7 @@ export default function Deliveries() {
                 <option value="">-- Elige un usuario del sistema --</option>
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'} {d.phone ? `· 📞 ${d.phone}` : ''}
+                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'} {d.phone ? `· Tel: ${d.phone}` : ''}
                   </option>
                 ))}
               </select>

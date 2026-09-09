@@ -9,6 +9,10 @@ interface CartContextValue {
   clear: () => void;
   total: number;
   count: number;
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  toggleCart: () => void;
 }
 
 const CartContext = createContext<CartContextValue>(null!);
@@ -27,10 +31,15 @@ function loadCart(): CartItem[] {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(loadCart);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   }, [items]);
+
+  const openCart = () => setIsOpen(true);
+  const closeCart = () => setIsOpen(false);
+  const toggleCart = () => setIsOpen((prev) => !prev);
 
   const add = (product: Product, quantity: number) => {
     setItems((prev) => {
@@ -42,6 +51,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { product, quantity }];
     });
+    setIsOpen(true);
   };
 
   const remove = (productId: number) => setItems((prev) => prev.filter((i) => i.product.id !== productId));
@@ -57,7 +67,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const count = items.reduce((a, i) => a + i.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, add, remove, setQuantity, clear, total, count }}>
+    <CartContext.Provider
+      value={{
+        items,
+        add,
+        remove,
+        setQuantity,
+        clear,
+        total,
+        count,
+        isOpen,
+        openCart,
+        closeCart,
+        toggleCart,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

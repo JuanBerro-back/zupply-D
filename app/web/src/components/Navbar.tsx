@@ -6,7 +6,7 @@ import { useNotifications } from '../context/NotificationContext';
 
 export default function Navbar() {
   const { user, tenant, logout } = useAuth();
-  const { count } = useCart();
+  const { count, openCart } = useCart();
   const { unread } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,33 +70,58 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Menú Segmentado de Pestañas (Desktop) */}
+          {/* Menú Segmentado de Pestañas (Desktop) - SIN EMOJIS, CON ICONOS SVG LIMPIOS */}
           <nav className="hidden lg:flex items-center gap-1 bg-black/15 p-1 rounded-2xl border border-white/10 backdrop-blur-sm">
             {/* Sección: Operaciones */}
             <Link to="/" className={linkClass('/')}>
-              <span>🏠</span> Inicio
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span>Inicio</span>
             </Link>
+
             {!isDomiciliario && (
               <Link to="/catalogo" className={linkClass('/catalogo')}>
-                <span>🛍️</span> Catálogo
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                <span>Catálogo</span>
               </Link>
             )}
+
+            {/* Botón de Carrito Desplegable Tipo Side Dashboard */}
             {!isSupplier && !isDomiciliario && (
-              <Link to="/carrito" className={linkClass('/carrito')}>
-                <span>🛒</span> Carrito
+              <button
+                type="button"
+                onClick={openCart}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition duration-150 text-white/90 hover:bg-white/15 hover:text-white"
+                title="Abrir Carrito Desplegable"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span>Carrito</span>
                 {count > 0 && (
-                  <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.2 text-[10px] font-black text-white">
+                  <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.2 text-[10px] font-black text-white shadow-xs">
                     {count}
                   </span>
                 )}
-              </Link>
+              </button>
             )}
+
             <Link to="/pedidos" className={linkClass('/pedidos')}>
-              <span>📦</span> Pedidos
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              <span>Pedidos</span>
             </Link>
+
             {canTrack && (
               <Link to="/logistica" className={linkClass('/logistica')}>
-                <span>🗺️</span> Mapa GPS
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <span>Mapa GPS</span>
               </Link>
             )}
 
@@ -106,24 +131,42 @@ export default function Navbar() {
             {/* Sección: Gestión */}
             {isOwner && (
               <Link to="/equipo" className={linkClass('/equipo')}>
-                <span>👥</span> Equipo
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span>Equipo</span>
               </Link>
             )}
+
             <Link to="/proveedores" className={linkClass('/proveedores')}>
-              <span>🏢</span> Proveedores
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span>Proveedores</span>
             </Link>
+
             {isRestaurant && (
               <Link to="/inventario" className={linkClass('/inventario')}>
-                <span>📊</span> Inventario
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Inventario</span>
               </Link>
             )}
+
             {(user?.role === 'admin' || user?.role === 'gerente') && (
               <>
                 <Link to="/facturacion" className={linkClass('/facturacion')}>
-                  <span>🧾</span> Facturas
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Facturas</span>
                 </Link>
                 <Link to="/contabilidad" className={linkClass('/contabilidad')}>
-                  <span>📈</span> Contable
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Contable</span>
                 </Link>
               </>
             )}
@@ -133,10 +176,16 @@ export default function Navbar() {
 
             {/* Sección: Inteligencia y Planes */}
             <Link to="/zupply-ia" className={linkClass('/zupply-ia')}>
-              <span>🤖</span> IA
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>IA</span>
             </Link>
             <Link to="/planes" className={linkClass('/planes')}>
-              <span>💎</span> Planes
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              <span>Planes</span>
             </Link>
           </nav>
 
@@ -169,7 +218,15 @@ export default function Navbar() {
               className="lg:hidden flex items-center justify-center h-9 w-9 rounded-xl bg-white/15 text-white hover:bg-white/25 active:scale-95 transition"
               aria-label="Abrir menú"
             >
-              {mobileMenuOpen ? '✕' : '☰'}
+              {mobileMenuOpen ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -201,29 +258,65 @@ export default function Navbar() {
                 <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
                   Operaciones y Envíos
                 </p>
-                <div className="space-y-1" onClick={() => setMobileMenuOpen(false)}>
-                  <Link to="/" className={mobileLinkClass('/')}>
-                    <span className="flex items-center gap-2">🏠 Inicio / Dashboard</span>
+                <div className="space-y-1">
+                  <Link to="/" className={mobileLinkClass('/')} onClick={() => setMobileMenuOpen(false)}>
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      Inicio / Dashboard
+                    </span>
                   </Link>
-                  <Link to="/pedidos" className={mobileLinkClass('/pedidos')}>
-                    <span className="flex items-center gap-2">📦 Pedidos y Despachos</span>
+
+                  <Link to="/pedidos" className={mobileLinkClass('/pedidos')} onClick={() => setMobileMenuOpen(false)}>
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      Pedidos y Despachos
+                    </span>
                   </Link>
+
                   {canTrack && (
-                    <Link to="/logistica" className={mobileLinkClass('/logistica')}>
-                      <span className="flex items-center gap-2">🗺️ Ruta GPS en Vivo</span>
+                    <Link to="/logistica" className={mobileLinkClass('/logistica')} onClick={() => setMobileMenuOpen(false)}>
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        Ruta GPS en Vivo
+                      </span>
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">En tiempo real</span>
                     </Link>
                   )}
+
                   {!isDomiciliario && (
-                    <Link to="/catalogo" className={mobileLinkClass('/catalogo')}>
-                      <span className="flex items-center gap-2">🛍️ Catálogo de Insumos</span>
+                    <Link to="/catalogo" className={mobileLinkClass('/catalogo')} onClick={() => setMobileMenuOpen(false)}>
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                        Catálogo de Insumos
+                      </span>
                     </Link>
                   )}
+
                   {!isSupplier && !isDomiciliario && (
-                    <Link to="/carrito" className={mobileLinkClass('/carrito')}>
-                      <span className="flex items-center gap-2">🛒 Carrito de Compras</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        openCart();
+                      }}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-700 hover:bg-slate-100 text-left"
+                    >
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        Carrito Side Dashboard
+                      </span>
                       {count > 0 && <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs text-white font-bold">{count}</span>}
-                    </Link>
+                    </button>
                   )}
                 </div>
               </div>
@@ -235,25 +328,50 @@ export default function Navbar() {
                 <div className="space-y-1" onClick={() => setMobileMenuOpen(false)}>
                   {isOwner && (
                     <Link to="/equipo" className={mobileLinkClass('/equipo')}>
-                      <span className="flex items-center gap-2">👥 Equipo y Domiciliarios</span>
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Equipo y Domiciliarios
+                      </span>
                       <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-brand">Gestión</span>
                     </Link>
                   )}
                   <Link to="/proveedores" className={mobileLinkClass('/proveedores')}>
-                    <span className="flex items-center gap-2">🏢 Directorio de Proveedores</span>
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Directorio de Proveedores
+                    </span>
                   </Link>
                   {isRestaurant && (
                     <Link to="/inventario" className={mobileLinkClass('/inventario')}>
-                      <span className="flex items-center gap-2">📊 Inventario de Bodega</span>
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Inventario de Bodega
+                      </span>
                     </Link>
                   )}
                   {(user?.role === 'admin' || user?.role === 'gerente') && (
                     <>
                       <Link to="/facturacion" className={mobileLinkClass('/facturacion')}>
-                        <span className="flex items-center gap-2">🧾 Facturación Electrónica</span>
+                        <span className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Facturación Electrónica
+                        </span>
                       </Link>
                       <Link to="/contabilidad" className={mobileLinkClass('/contabilidad')}>
-                        <span className="flex items-center gap-2">📈 Contabilidad y Flujo</span>
+                        <span className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Contabilidad y Flujo
+                        </span>
                       </Link>
                     </>
                   )}
@@ -266,10 +384,20 @@ export default function Navbar() {
                 </p>
                 <div className="space-y-1" onClick={() => setMobileMenuOpen(false)}>
                   <Link to="/zupply-ia" className={mobileLinkClass('/zupply-ia')}>
-                    <span className="flex items-center gap-2">🤖 Asistente Zupply IA</span>
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Asistente Zupply IA
+                    </span>
                   </Link>
                   <Link to="/planes" className={mobileLinkClass('/planes')}>
-                    <span className="flex items-center gap-2">💎 Planes y Suscripción</span>
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                      </svg>
+                      Planes y Suscripción
+                    </span>
                   </Link>
                 </div>
               </div>
@@ -278,7 +406,7 @@ export default function Navbar() {
         )}
       </header>
 
-      {/* Barra de Navegación Inferior Móvil (Estilo App Nativa Android / DiDi) */}
+      {/* Barra de Navegación Inferior Móvil (Estilo App Nativa Android / DiDi) - SIN EMOJIS */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-lg flex items-center justify-around">
         <Link
           to="/"
@@ -286,8 +414,10 @@ export default function Navbar() {
             isActive('/') ? 'text-brand font-bold scale-105' : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <span className="text-lg leading-none">🏠</span>
-          <span className="text-[10px] mt-1">Inicio</span>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span className="text-[10px] mt-0.5">Inicio</span>
         </Link>
 
         <Link
@@ -296,8 +426,10 @@ export default function Navbar() {
             isActive('/pedidos') ? 'text-brand font-bold scale-105' : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <span className="text-lg leading-none">📦</span>
-          <span className="text-[10px] mt-1">Pedidos</span>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          <span className="text-[10px] mt-0.5">Pedidos</span>
         </Link>
 
         {canTrack && (
@@ -307,22 +439,31 @@ export default function Navbar() {
               isActive('/logistica') ? 'text-brand font-bold scale-105' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <span className="text-lg leading-none">🗺️</span>
-            <span className="text-[10px] mt-1">GPS</span>
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span className="text-[10px] mt-0.5">GPS</span>
+            <span className="absolute top-1 right-2 h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           </Link>
         )}
 
-        {isOwner ? (
-          <Link
-            to="/equipo"
-            className={`flex flex-col items-center py-1 px-2 rounded-xl transition ${
-              isActive('/equipo') ? 'text-brand font-bold scale-105' : 'text-slate-500 hover:text-slate-800'
-            }`}
+        {/* Carrito Side Drawer en móvil si no es proveedor */}
+        {!isSupplier && !isDomiciliario ? (
+          <button
+            type="button"
+            onClick={openCart}
+            className="flex flex-col items-center py-1 px-2 rounded-xl transition text-slate-500 hover:text-slate-800 relative"
           >
-            <span className="text-lg leading-none">👥</span>
-            <span className="text-[10px] mt-1">Equipo</span>
-          </Link>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <span className="text-[10px] mt-0.5">Carrito</span>
+            {count > 0 && (
+              <span className="absolute top-0 right-2 rounded-full bg-rose-500 px-1 text-[9px] font-black text-white">
+                {count}
+              </span>
+            )}
+          </button>
         ) : (
           <Link
             to="/catalogo"
@@ -330,8 +471,10 @@ export default function Navbar() {
               isActive('/catalogo') ? 'text-brand font-bold scale-105' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <span className="text-lg leading-none">🛍️</span>
-            <span className="text-[10px] mt-1">Catálogo</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <span className="text-[10px] mt-0.5">Catálogo</span>
           </Link>
         )}
 
@@ -342,8 +485,16 @@ export default function Navbar() {
             mobileMenuOpen ? 'text-brand font-bold' : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <span className="text-lg leading-none">{mobileMenuOpen ? '✕' : '☰'}</span>
-          <span className="text-[10px] mt-1">Más</span>
+          {mobileMenuOpen ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+          <span className="text-[10px] mt-0.5">Más</span>
         </button>
       </nav>
     </>

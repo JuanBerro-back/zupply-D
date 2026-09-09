@@ -19,14 +19,14 @@ interface TeamUser {
 }
 
 const RESTAURANT_ROLES = [
-  { id: 5, name: 'domiciliario', label: '🛵 Domiciliario / Conductor' },
-  { id: 2, name: 'gerente', label: '👑 Gerente de Restaurante' },
-  { id: 3, name: 'empleado', label: '👤 Empleado Operativo' },
+  { id: 5, name: 'domiciliario', label: 'Domiciliario / Conductor' },
+  { id: 2, name: 'gerente', label: 'Gerente de Restaurante' },
+  { id: 3, name: 'empleado', label: 'Empleado Operativo' },
 ];
 
 const SUPPLIER_ROLES = [
-  { id: 5, name: 'domiciliario', label: '🛵 Domiciliario / Conductor de Entregas' },
-  { id: 4, name: 'proveedor_admin', label: '🏢 Administrador Proveedor' },
+  { id: 5, name: 'domiciliario', label: 'Domiciliario / Conductor de Entregas' },
+  { id: 4, name: 'proveedor_admin', label: 'Administrador Proveedor' },
 ];
 
 export default function TeamManagement() {
@@ -166,35 +166,40 @@ export default function TeamManagement() {
   const getRoleBadge = (roleId: number, roleName: string) => {
     if (roleId === 5 || roleName === 'domiciliario') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-bold text-sky-800 border border-sky-200 shadow-sm">
-          <span>🛵</span> Domiciliario
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-bold text-sky-800 border border-sky-200 shadow-xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+          <span>Domiciliario</span>
         </span>
       );
     }
     if (roleId === 2 || roleName === 'gerente') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 border border-purple-200">
-          <span>👑</span> Gerente
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 border border-purple-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+          <span>Gerente</span>
         </span>
       );
     }
     if (roleId === 4 || roleName === 'proveedor_admin') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800 border border-blue-200">
-          <span>🏢</span> Proveedor Admin
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800 border border-blue-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+          <span>Proveedor Admin</span>
         </span>
       );
     }
     if (roleId === 1 || roleName === 'admin') {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
-          <span>⭐</span> Administrador
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          <span>Administrador</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 border">
-        <span>👤</span> Empleado
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+        <span>Empleado</span>
       </span>
     );
   };
@@ -207,7 +212,10 @@ export default function TeamManagement() {
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <span>👥</span> Gestión de Equipo y Domiciliarios
+            <svg className="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span>Gestión de Equipo y Domiciliarios</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
             Administra los usuarios de tu organización y asigna domiciliarios a las rutas de despacho.
@@ -227,14 +235,24 @@ export default function TeamManagement() {
 
       {error && (
         <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700 flex items-center justify-between">
-          <span>⚠️ {error}</span>
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </span>
           <button onClick={() => setError('')} className="text-rose-500 font-bold">✕</button>
         </div>
       )}
 
       {successMsg && (
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 flex items-center justify-between">
-          <span>✓ {successMsg}</span>
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {successMsg}
+          </span>
           <button onClick={() => setSuccessMsg('')} className="text-emerald-500 font-bold">✕</button>
         </div>
       )}
@@ -255,13 +273,13 @@ export default function TeamManagement() {
           </button>
           <button
             onClick={() => setActiveTab('domiciliarios')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               activeTab === 'domiciliarios'
                 ? 'bg-white text-sky-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>🛵 Domiciliarios</span>
+            <span>Domiciliarios</span>
             <span className="rounded-full bg-sky-100 px-1.5 py-0.2 text-[10px] text-sky-800 font-black">
               {domiciliarios.length}
             </span>
@@ -455,8 +473,11 @@ export default function TeamManagement() {
                 <div>
                   <span className="text-[10px] text-slate-400 block font-semibold">TELÉFONO</span>
                   {u.phone ? (
-                    <a href={`tel:${u.phone}`} className="text-brand font-medium">
-                      📞 {u.phone}
+                    <a href={`tel:${u.phone}`} className="text-brand font-medium inline-flex items-center gap-1">
+                      <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <span>{u.phone}</span>
                     </a>
                   ) : (
                     <span className="text-slate-400">Sin teléfono</span>
@@ -486,7 +507,10 @@ export default function TeamManagement() {
                     onClick={() => navigate('/logistica')}
                     className="w-full rounded-xl bg-gradient-to-r from-sky-600 to-sky-700 text-white font-bold text-xs py-2 shadow-sm hover:from-sky-700 hover:to-sky-800 transition flex items-center justify-center gap-1.5"
                   >
-                    <span>🗺️</span> Asignar Pedido / Ver en Mapa GPS
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <span>Asignar Pedido / Ver en Mapa GPS</span>
                   </button>
                 </div>
               )}
@@ -518,7 +542,11 @@ export default function TeamManagement() {
 
         {filteredUsers.length === 0 && (
           <div className="rounded-2xl border bg-white p-8 text-center text-slate-500">
-            <p className="text-3xl mb-2">🔍</p>
+            <div className="h-8 w-8 mx-auto mb-2 text-slate-300 flex items-center justify-center">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
             <p className="font-bold text-slate-800">No se encontraron usuarios</p>
             <p className="text-xs text-slate-400 mt-1">Prueba con otra pestaña o limpia el buscador.</p>
           </div>
@@ -554,8 +582,11 @@ export default function TeamManagement() {
                   <td className="px-5 py-3.5">{getRoleBadge(u.role_id, u.role_name)}</td>
                   <td className="px-5 py-3.5 text-xs text-slate-600">
                     {u.phone ? (
-                      <a href={`tel:${u.phone}`} className="text-brand font-medium hover:underline">
-                        📞 {u.phone}
+                      <a href={`tel:${u.phone}`} className="text-brand font-medium hover:underline inline-flex items-center gap-1">
+                        <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span>{u.phone}</span>
                       </a>
                     ) : (
                       <span className="text-slate-400">-</span>
@@ -576,10 +607,13 @@ export default function TeamManagement() {
                       {isDom && (
                         <button
                           onClick={() => navigate('/logistica')}
-                          className="rounded-lg bg-sky-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-sky-700 shadow-sm"
+                          className="rounded-lg bg-sky-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-sky-700 shadow-sm inline-flex items-center gap-1"
                           title="Ver en mapa GPS y asignar pedidos"
                         >
-                          🗺️ Asignar Pedido
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          <span>Asignar Pedido</span>
                         </button>
                       )}
                       <button
