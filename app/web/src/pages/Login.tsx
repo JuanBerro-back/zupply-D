@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { getApiOrigin, setCustomApiOrigin, DEFAULT_RENDER_URL } from '../lib/api';
+import { getApiOrigin, setCustomApiOrigin, DEFAULT_RENDER_URL, getApkDownloadUrl } from '../lib/api';
 import { IconSettings, IconAndroid, IconDownload } from '../components/Icons';
 import AppDownloadNotice from '../components/AppDownloadNotice';
 
@@ -13,8 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const backendOrigin = getApiOrigin();
-  const downloadUrl = backendOrigin ? `${backendOrigin}/download/apk` : '/download/apk';
+  const downloadUrl = getApkDownloadUrl();
 
   // Configuración de servidor / Render
   const [showConfig, setShowConfig] = useState(false);

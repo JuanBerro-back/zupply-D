@@ -58,6 +58,12 @@ export function createApp() {
       path.join(__dirname, '..', '..', '..', 'dist-apk', 'Zupply.apk'),
       path.join(__dirname, '..', '..', 'web', 'dist', 'Zupply.apk'),
       path.join(__dirname, '..', '..', 'web', 'public', 'Zupply.apk'),
+      path.join(process.cwd(), 'dist-apk', 'Zupply.apk'),
+      path.join(process.cwd(), 'app', 'web', 'dist', 'Zupply.apk'),
+      path.join(process.cwd(), 'app', 'web', 'public', 'Zupply.apk'),
+      path.join(process.cwd(), '..', 'dist-apk', 'Zupply.apk'),
+      path.join(process.cwd(), '..', 'app', 'web', 'dist', 'Zupply.apk'),
+      path.join(process.cwd(), '..', 'app', 'web', 'public', 'Zupply.apk'),
     ];
     for (const p of candidates) {
       if (fs.existsSync(p)) {
@@ -71,6 +77,7 @@ export function createApp() {
 
   app.get('/download/apk', serveApk);
   app.get('/api/download/apk', serveApk);
+  app.get('/Zupply.apk', serveApk);
 
   const distPath = path.join(__dirname, '..', '..', 'web', 'dist');
   if (fs.existsSync(path.join(distPath, 'index.html'))) {

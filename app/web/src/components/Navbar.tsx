@@ -6,7 +6,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import HamburgerDrawer from './HamburgerDrawer';
-import { IconMenu, IconLogout, IconSun, IconMoon, IconContrast, IconGlobe } from './Icons';
+import { IconMenu, IconLogout, IconSun, IconMoon, IconContrast, IconGlobe, IconAndroid } from './Icons';
+import { isCapacitorNative } from '../lib/api';
 
 export default function Navbar() {
   const { user, tenant, logout } = useAuth();
@@ -135,6 +136,20 @@ export default function Navbar() {
                   </span>
                 )}
               </button>
+            )}
+
+            {/* Acceso Directo Descarga APK en Navbar */}
+            {!isCapacitorNative() && (
+              <a
+                href="/Zupply.apk"
+                download="Zupply.apk"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs transition shadow-xs border border-emerald-400/60 cursor-pointer"
+                title={lang === 'es' ? 'Descargar instalador Zupply.apk para Android' : 'Download Zupply.apk Android installer'}
+                aria-label="Descargar Zupply APK"
+              >
+                <IconAndroid className="w-4 h-4 text-slate-950" />
+                <span>APK</span>
+              </a>
             )}
 
             {/* Campanita de Notificaciones */}

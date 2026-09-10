@@ -16,14 +16,28 @@ $outputDir = Join-Path $rootDir "dist-apk"
 
 # Configurar JAVA_HOME compatible con Capacitor 8 (JDK 21)
 $jdk21Paths = @(
-    "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot",
+    (Get-Item -Path "C:\Program Files\Java\jdk-21*" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName),
+    "C:\Program Files\Java\latest\jdk-21",
     "C:\Program Files\Java\jdk-21",
+    "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot",
     (Get-Item -Path "C:\Program Files\Eclipse Adoptium\jdk-21*" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName)
 )
 $jdk21 = $jdk21Paths | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if ($jdk21) {
     $env:JAVA_HOME = $jdk21
+    $env:PATH = "$jdk21\bin;$env:PATH"
     Write-Host "Utilizando JDK: $jdk21" -ForegroundColor DarkGray
+}
+
+# Configurar ANDROID_HOME si existe
+$defaultSdk = Join-Path $env:LOCALAPPDATA "Android\Sdk"
+if (Test-Path $defaultSdk) {
+    $env:ANDROID_HOME = $defaultSdk
+    $env:ANDROID_SDK_ROOT = $defaultSdk
+    $localProp = Join-Path $androidDir "local.properties"
+    $cleanSdk = $defaultSdk.Replace('\', '/')
+    "sdk.dir=$cleanSdk" | Set-Content -Path $localProp -Encoding UTF8
+    Write-Host "Utilizando Android SDK: $defaultSdk" -ForegroundColor DarkGray
 }
 
 # 1. Compilar Frontend Vite con VITE_API_URL
@@ -64,6 +78,12 @@ if (Test-Path $sourceApk) {
     }
     $targetApk = Join-Path $outputDir "Zupply.apk"
     Copy-Item -Path $sourceApk -Destination $targetApk -Force
+    $publicApk = Join-Path $webDir "public\Zupply.apk"
+    Copy-Item -Path $sourceApk -Destination $publicApk -Force
+    $distApk = Join-Path $webDir "dist\Zupply.apk"
+    if (Test-Path (Join-Path $webDir "dist")) {
+        Copy-Item -Path $sourceApk -Destination $distApk -Force
+    }
     $sizeMb = [math]::Round(((Get-Item $targetApk).Length / 1MB), 2)
 
     Write-Host "`n=========================================" -ForegroundColor Green

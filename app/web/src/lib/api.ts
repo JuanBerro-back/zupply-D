@@ -35,6 +35,11 @@ export function getApiOrigin(): string {
   return '';
 }
 
+export function getApkDownloadUrl(): string {
+  // El instalador Zupply.apk se sirve directamente desde la raíz pública de la web
+  return '/Zupply.apk';
+}
+
 export function setCustomApiOrigin(url: string) {
   if (!url || !url.trim()) {
     localStorage.removeItem(SERVER_URL_KEY);

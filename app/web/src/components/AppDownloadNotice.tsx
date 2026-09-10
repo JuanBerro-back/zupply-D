@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getApiOrigin, isCapacitorNative } from '../lib/api';
+import { isCapacitorNative, getApkDownloadUrl } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import { IconAndroid, IconDownload, IconClose, IconCheck } from './Icons';
 
@@ -26,9 +26,8 @@ export default function AppDownloadNotice({
     return null;
   }
 
-  // URL absoluta o relativa de descarga del APK
-  const backendOrigin = getApiOrigin();
-  const downloadUrl = backendOrigin ? `${backendOrigin}/download/apk` : '/download/apk';
+  // URL directa de descarga del instalador APK
+  const downloadUrl = getApkDownloadUrl();
 
   const handleDismiss = () => {
     if (dismissible) {
@@ -38,7 +37,7 @@ export default function AppDownloadNotice({
   };
 
   const handleCopyLink = async () => {
-    const fullUrl = `${window.location.origin}/download/apk`;
+    const fullUrl = `${window.location.origin}/Zupply.apk`;
     try {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
