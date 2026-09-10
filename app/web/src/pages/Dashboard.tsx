@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { Order, Product } from '../types';
 import { ORDER_STATUS, formatMoney, formatDate } from '../lib/constants';
 import RecommendedSuppliersGallery from '../components/RecommendedSuppliersGallery';
+import AppDownloadNotice from '../components/AppDownloadNotice';
 import {
   IconMotorcycle,
   IconChart,
@@ -382,6 +383,9 @@ export default function Dashboard() {
           </button>
         </div>
       )}
+
+      {/* Aviso Prominente de Descarga de Zupply App */}
+      <AppDownloadNotice />
 
       {/* Vista Exclusiva y Dedicada para Domiciliarios */}
       {isDomiciliario && (

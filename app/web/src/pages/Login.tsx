@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getApiOrigin, setCustomApiOrigin, DEFAULT_RENDER_URL } from '../lib/api';
 import { IconSettings } from '../components/Icons';
+import AppDownloadNotice from '../components/AppDownloadNotice';
 
 export default function Login() {
   const { login } = useAuth();
@@ -158,6 +159,10 @@ export default function Login() {
         <div className="mt-4 rounded bg-gray-50 p-3 text-xs text-gray-600">
           Usuarios demo (contraseña <b>demo1234</b>): <b>admin</b> · <b>gerente</b> · <b>empleado</b> ·{' '}
           <b>proveedor</b> · <b>domiciliario</b>
+        </div>
+
+        <div className="mt-4">
+          <AppDownloadNotice compact />
         </div>
       </div>
     </div>

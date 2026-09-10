@@ -52,6 +52,26 @@ export function createApp() {
   app.use('/api/ai', aiRouter);
   app.use('/api/users', usersRouter);
 
+  // Endpoint de descarga directa del instalador APK para Android
+  const serveApk = (_req: express.Request, res: express.Response) => {
+    const candidates = [
+      path.join(__dirname, '..', '..', '..', 'dist-apk', 'Zupply.apk'),
+      path.join(__dirname, '..', '..', 'web', 'dist', 'Zupply.apk'),
+      path.join(__dirname, '..', '..', 'web', 'public', 'Zupply.apk'),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        res.setHeader('Content-Disposition', 'attachment; filename="Zupply.apk"');
+        res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+        return res.sendFile(path.resolve(p));
+      }
+    }
+    return res.status(404).json({ error: 'Instalador Zupply.apk no disponible actualmente' });
+  };
+
+  app.get('/download/apk', serveApk);
+  app.get('/api/download/apk', serveApk);
+
   const distPath = path.join(__dirname, '..', '..', 'web', 'dist');
   if (fs.existsSync(path.join(distPath, 'index.html'))) {
     app.use(express.static(distPath));

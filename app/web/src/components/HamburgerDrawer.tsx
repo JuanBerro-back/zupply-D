@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import TermsModal from './TermsModal';
+import AppDownloadNotice from './AppDownloadNotice';
 import {
   IconDashboard,
   IconCatalog,
@@ -107,6 +108,9 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
 
         {/* Content with all app modules */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 text-sm">
+          {/* Aviso / Acceso de Descarga de la App */}
+          <AppDownloadNotice compact />
+
           {/* Módulos Principales */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
