@@ -15,6 +15,7 @@ import {
   resolveDispatchHub,
   DEMO_BUCARAMANGA_DELIVERIES,
 } from '../lib/bucaramangaGeo';
+import { IconPin, IconKey } from '../components/Icons';
 
 type PositionEvent = { delivery_id: number; lat: number; lng: number; speed?: number | null };
 const DELIVERY_STORAGE_KEY = 'zupply_deliveries_route_v2';
@@ -737,8 +738,8 @@ export default function Deliveries() {
   if (isGerente) {
     return (
       <div className="max-w-2xl mx-auto my-12 p-8 rounded-3xl bg-white border border-slate-200 shadow-xl text-center space-y-5">
-        <div className="h-16 w-16 mx-auto rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-3xl">
-          📍
+        <div className="h-16 w-16 mx-auto rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+          <IconPin className="w-8 h-8 text-amber-600" />
         </div>
         <h2 className="text-2xl font-black text-slate-800">Visualización de Mapa GPS Restringida</h2>
         <p className="text-sm text-slate-600 leading-relaxed">
@@ -953,8 +954,9 @@ export default function Deliveries() {
                 <div className="space-y-2">
                   {selected.confirmation_code && (
                     <div className="rounded-xl bg-amber-50 border-2 border-amber-300 p-3 text-center space-y-1">
-                      <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
-                        🔑 Llave de Seguridad para el Gerente
+                      <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block inline-flex items-center justify-center gap-1">
+                        <IconKey className="w-3.5 h-3.5 text-amber-700 inline" />
+                        Llave de Seguridad para el Gerente
                       </span>
                       <div className="text-xl font-black font-mono text-amber-950 tracking-widest bg-white py-1 px-3 rounded-lg border border-amber-200 inline-block shadow-xs">
                         {selected.confirmation_code}

@@ -2,13 +2,18 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import HamburgerDrawer from './HamburgerDrawer';
 import DashboardDropdownMenu from './DashboardDropdownMenu';
+import { IconMenu, IconLogout, IconSun, IconMoon, IconContrast, IconGlobe } from './Icons';
 
 export default function Navbar() {
   const { user, tenant, logout } = useAuth();
   const { count, openCart } = useCart();
+  const { lang, toggleLanguage, t } = useLanguage();
+  const { isDarkMode, isHighContrast, toggleDarkMode, toggleHighContrast } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -136,6 +141,48 @@ export default function Navbar() {
             {/* Campanita de Notificaciones */}
             <NotificationBell />
 
+            {/* Acceso Rápido: Cambio de Idioma Instantáneo */}
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white transition text-xs font-black border border-white/20 cursor-pointer shadow-2xs"
+              title={lang === 'es' ? 'Switch to English' : 'Cambiar a Español'}
+              aria-label="Cambiar idioma"
+            >
+              <IconGlobe className="w-3.5 h-3.5" />
+              <span>{lang.toUpperCase()}</span>
+            </button>
+
+            {/* Acceso Rápido: Alto Contraste (WCAG AAA) */}
+            <button
+              type="button"
+              onClick={toggleHighContrast}
+              className={`flex items-center justify-center h-9 w-9 rounded-xl transition active:scale-95 cursor-pointer border shadow-2xs ${
+                isHighContrast
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-300'
+                  : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
+              }`}
+              title={isHighContrast ? 'Desactivar alto contraste' : 'Activar accesibilidad alto contraste'}
+              aria-label="Alto contraste"
+            >
+              <IconContrast className="w-4 h-4" />
+            </button>
+
+            {/* Acceso Rápido: Modo Oscuro Funcional */}
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              className={`flex items-center justify-center h-9 w-9 rounded-xl transition active:scale-95 cursor-pointer border shadow-2xs ${
+                isDarkMode
+                  ? 'bg-slate-900 text-amber-300 border-slate-700'
+                  : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
+              }`}
+              title={isDarkMode ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+              aria-label="Modo oscuro"
+            >
+              {isDarkMode ? <IconSun className="w-4 h-4" /> : <IconMoon className="w-4 h-4" />}
+            </button>
+
             {/* Perfil de Usuario */}
             <div className="hidden md:flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -152,7 +199,7 @@ export default function Navbar() {
             {/* MENÚ DESPLEGABLE TIPO DASHBOARD (Móvil y Web) */}
             <DashboardDropdownMenu onOpenFullDrawer={() => setDrawerOpen(true)} />
 
-            {/* BOTÓN PROMINENTE DE MENÚ HAMBURGUESA (☰) CON TODO EL MENÚ */}
+            {/* BOTÓN PROMINENTE DE MENÚ HAMBURGUESA CON TODO EL MENÚ */}
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
@@ -160,10 +207,8 @@ export default function Navbar() {
               title="Abrir Menú Completo Zupply"
               aria-label="Abrir menú hamburguesa"
             >
-              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              <span>Menú (☰)</span>
+              <IconMenu className="w-4 h-4 text-brand" />
+              <span>{t('nav.menu')}</span>
             </button>
 
             {/* Salida Rápida */}
@@ -172,9 +217,7 @@ export default function Navbar() {
               className="hidden lg:flex shrink-0 items-center justify-center h-9 w-9 rounded-xl bg-rose-500/80 hover:bg-rose-600 active:scale-95 text-white transition border border-rose-400/50 cursor-pointer"
               title="Cerrar sesión"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              <IconLogout className="w-4 h-4" />
             </button>
           </div>
         </div>

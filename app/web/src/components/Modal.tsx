@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { IconClose } from './Icons';
 
 export default function Modal({
   title,
@@ -22,7 +23,7 @@ export default function Modal({
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
             aria-label="Cerrar modal"
           >
-            ✕
+            <IconClose className="w-5 h-5" />
           </button>
         </div>
         {children}

@@ -2,7 +2,25 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getPlanDetails } from '../lib/planAccess';
+import {
+  IconDashboard,
+  IconCatalog,
+  IconOrders,
+  IconCart,
+  IconInventory,
+  IconGps,
+  IconTeam,
+  IconSuppliers,
+  IconPlans,
+  IconAi,
+  IconInvoice,
+  IconAccounting,
+  IconLogout,
+  IconClose,
+  IconMenu,
+} from './Icons';
 
 interface DashboardDropdownMenuProps {
   onOpenFullDrawer?: () => void;
@@ -11,6 +29,7 @@ interface DashboardDropdownMenuProps {
 export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDropdownMenuProps) {
   const { user, tenant, logout } = useAuth();
   const { count, openCart } = useCart();
+  const { lang, t } = useLanguage();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -74,8 +93,8 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
         aria-haspopup="true"
       >
         <div className="flex items-center gap-1.5">
-          <span className="text-sm">📊</span>
-          <span className="font-extrabold tracking-tight">Dashboard</span>
+          <IconDashboard className="w-4 h-4 text-emerald-300 dark:text-emerald-400" />
+          <span className="font-extrabold tracking-tight">{t('nav.dropdown_dashboard')}</span>
         </div>
         <svg
           className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -87,7 +106,7 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
         </svg>
       </button>
 
-      {/* Menú Desplegable tipo Dashboard (Desktop: Dropdown flotante / Mobile: Modal centrado) */}
+      {/* Menú Desplegable tipo Dashboard */}
       {isOpen && (
         <>
           {/* Fondo móvil táctil */}
@@ -113,7 +132,7 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                     isSupplier ? 'bg-emerald-600 text-white' : 'bg-brand text-white'
                   }`}
                 >
-                  {isSupplier ? '🏢' : isDomiciliario ? '🛵' : '🍽️'}
+                  <IconDashboard className="w-6 h-6" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-black truncate leading-tight">
@@ -144,9 +163,7 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                 className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition cursor-pointer"
                 title="Cerrar desplegable"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <IconClose className="w-4 h-4" />
               </button>
             </div>
 
@@ -155,7 +172,7 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
               {/* Sección 1: Operaciones Principales */}
               <div>
                 <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 mb-2">
-                  Operaciones del Panel
+                  {lang === 'es' ? 'Operaciones del Panel' : 'Panel Operations'}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <Link
@@ -163,10 +180,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                     onClick={closeAndNavigate}
                     className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">📊</span>
+                    <div className="h-8 w-8 rounded-xl bg-sky-100 dark:bg-sky-950 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-105 transition">
+                      <IconDashboard className="w-4 h-4" />
+                    </div>
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white leading-tight">Inicio Dashboard</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Resumen y métricas</p>
+                      <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.dashboard')}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Resumen general' : 'Overview metrics'}</p>
                     </div>
                   </Link>
 
@@ -176,10 +195,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                       onClick={closeAndNavigate}
                       className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
                     >
-                      <span className="text-xl group-hover:scale-110 transition-transform">📦</span>
+                      <div className="h-8 w-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition">
+                        <IconCatalog className="w-4 h-4" />
+                      </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white leading-tight">Catálogo B2B</p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Insumos mayoristas</p>
+                        <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.catalog')}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Insumos mayoristas' : 'B2B Supplies'}</p>
                       </div>
                     </Link>
                   )}
@@ -189,10 +210,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                     onClick={closeAndNavigate}
                     className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">📋</span>
+                    <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition">
+                      <IconOrders className="w-4 h-4" />
+                    </div>
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white leading-tight">Pedidos</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Despachos y órdenes</p>
+                      <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.orders')}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Despachos y estados' : 'Track orders'}</p>
                     </div>
                   </Link>
 
@@ -205,17 +228,19 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                       }}
                       className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left cursor-pointer group"
                     >
-                      <span className="text-xl group-hover:scale-110 transition-transform">🛒</span>
+                      <div className="h-8 w-8 rounded-xl bg-rose-100 dark:bg-rose-950 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-105 transition">
+                        <IconCart className="w-4 h-4" />
+                      </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-bold text-slate-900 dark:text-white leading-tight">Carrito</p>
+                          <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.cart')}</p>
                           {count > 0 && (
                             <span className="rounded-full bg-rose-500 px-1.5 py-0.2 text-[9px] font-black text-white">
                               {count}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Insumos listos</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Insumos listos' : 'Ready items'}</p>
                       </div>
                     </button>
                   )}
@@ -226,10 +251,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                       onClick={closeAndNavigate}
                       className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-sky-100 dark:border-sky-900/50 bg-sky-50/50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 transition group"
                     >
-                      <span className="text-xl group-hover:scale-110 transition-transform">🗺️</span>
+                      <div className="h-8 w-8 rounded-xl bg-sky-100 dark:bg-sky-950 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-105 transition">
+                        <IconGps className="w-4 h-4" />
+                      </div>
                       <div>
-                        <p className="font-bold text-sky-900 dark:text-sky-200 leading-tight">Mapa GPS</p>
-                        <p className="text-[10px] text-sky-600 dark:text-sky-400">Rutas satelitales</p>
+                        <p className="font-bold text-sky-900 dark:text-sky-200 leading-tight">{t('nav.deliveries')}</p>
+                        <p className="text-[10px] text-sky-600 dark:text-sky-400">{lang === 'es' ? 'Rutas satelitales' : 'Live GPS routes'}</p>
                       </div>
                     </Link>
                   )}
@@ -240,10 +267,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                       onClick={closeAndNavigate}
                       className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
                     >
-                      <span className="text-xl group-hover:scale-110 transition-transform">🥦</span>
+                      <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition">
+                        <IconInventory className="w-4 h-4" />
+                      </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white leading-tight">Inventario ROP</p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Control de stock</p>
+                        <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.inventory')}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Control de stock' : 'Reorder alerts'}</p>
                       </div>
                     </Link>
                   )}
@@ -253,7 +282,7 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
               {/* Sección 2: Gestión, Personas & Finanzas */}
               <div>
                 <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 mb-2">
-                  Gestión & Automatización
+                  {lang === 'es' ? 'Gestión & Automatización' : 'Management & Automation'}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {(isGerente || isSupplier || isAdmin) && (
@@ -262,13 +291,15 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                       onClick={closeAndNavigate}
                       className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition group"
                     >
-                      <span className="text-xl group-hover:scale-110 transition-transform">👥</span>
+                      <div className="h-8 w-8 rounded-xl bg-purple-100 dark:bg-purple-950 flex items-center justify-center text-purple-600 dark:text-purple-400 group-hover:scale-105 transition">
+                        <IconTeam className="w-4 h-4" />
+                      </div>
                       <div>
                         <p className="font-bold text-purple-900 dark:text-purple-200 leading-tight">
-                          {isSupplier ? 'Flota Domiciliarios' : 'Equipo Empleados'}
+                          {isSupplier ? (lang === 'es' ? 'Flota Domiciliarios' : 'Driver Fleet') : (lang === 'es' ? 'Equipo Empleados' : 'Staff Team')}
                         </p>
                         <p className="text-[10px] text-purple-600 dark:text-purple-400">
-                          {isSupplier ? 'Vehículos & rutas' : 'Personal operativo'}
+                          {isSupplier ? (lang === 'es' ? 'Vehículos & rutas' : 'Vehicles & plates') : (lang === 'es' ? 'Personal operativo' : 'Kitchen staff')}
                         </p>
                       </div>
                     </Link>
@@ -279,10 +310,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                     onClick={closeAndNavigate}
                     className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🏢</span>
+                    <div className="h-8 w-8 rounded-xl bg-teal-100 dark:bg-teal-950 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:scale-105 transition">
+                      <IconSuppliers className="w-4 h-4" />
+                    </div>
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white leading-tight">Proveedores</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Directorio y galería</p>
+                      <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.suppliers')}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Directorio y galería' : 'Verified network'}</p>
                     </div>
                   </Link>
 
@@ -291,10 +324,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                     onClick={closeAndNavigate}
                     className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-amber-100 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition group"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">💎</span>
+                    <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition">
+                      <IconPlans className="w-4 h-4" />
+                    </div>
                     <div>
-                      <p className="font-bold text-amber-900 dark:text-amber-200 leading-tight">Planes Zupply</p>
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400">Suscripción activa</p>
+                      <p className="font-bold text-amber-900 dark:text-amber-200 leading-tight">{t('nav.plans')}</p>
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400">{lang === 'es' ? 'Beneficios y nivel' : 'Tier & features'}</p>
                     </div>
                   </Link>
 
@@ -303,10 +338,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                     onClick={closeAndNavigate}
                     className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition group"
                   >
-                    <span className="text-xl group-hover:scale-110 transition-transform">🤖</span>
+                    <div className="h-8 w-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition">
+                      <IconAi className="w-4 h-4" />
+                    </div>
                     <div>
-                      <p className="font-bold text-indigo-900 dark:text-indigo-200 leading-tight">Zupply IA</p>
-                      <p className="text-[10px] text-indigo-600 dark:text-indigo-400">Asistente 24/7</p>
+                      <p className="font-bold text-indigo-900 dark:text-indigo-200 leading-tight">{t('nav.ai')}</p>
+                      <p className="text-[10px] text-indigo-600 dark:text-indigo-400">{lang === 'es' ? 'Asesor 24/7' : '24/7 Copilot'}</p>
                     </div>
                   </Link>
 
@@ -317,10 +354,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                         onClick={closeAndNavigate}
                         className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
                       >
-                        <span className="text-xl group-hover:scale-110 transition-transform">📑</span>
+                        <div className="h-8 w-8 rounded-xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-105 transition">
+                          <IconInvoice className="w-4 h-4" />
+                        </div>
                         <div>
-                          <p className="font-bold text-slate-900 dark:text-white leading-tight">Facturación</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400">Normativa DIAN</p>
+                          <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.invoices')}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Normativa DIAN' : 'Legal compliance'}</p>
                         </div>
                       </Link>
 
@@ -329,10 +368,12 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                         onClick={closeAndNavigate}
                         className="flex items-center gap-2.5 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition group"
                       >
-                        <span className="text-xl group-hover:scale-110 transition-transform">📈</span>
+                        <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition">
+                          <IconAccounting className="w-4 h-4" />
+                        </div>
                         <div>
-                          <p className="font-bold text-slate-900 dark:text-white leading-tight">Contabilidad</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400">Costeo PEPS</p>
+                          <p className="font-bold text-slate-900 dark:text-white leading-tight">{t('nav.accounting')}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'es' ? 'Costeo PEPS' : 'FIFO costing'}</p>
                         </div>
                       </Link>
                     </>
@@ -355,7 +396,8 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition cursor-pointer"
               >
-                <span>☰ Menú Lateral Completo</span>
+                <IconMenu className="w-4 h-4" />
+                <span>{t('nav.full_drawer')}</span>
               </button>
 
               <button
@@ -363,7 +405,8 @@ export default function DashboardDropdownMenu({ onOpenFullDrawer }: DashboardDro
                 onClick={handleLogout}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-300 text-xs font-bold transition cursor-pointer"
               >
-                <span>Cerrar Sesión</span>
+                <IconLogout className="w-4 h-4" />
+                <span>{t('nav.logout')}</span>
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { IconAi, IconStar } from './Icons';
 
 interface SupplierItem {
   id: number;
@@ -102,7 +103,7 @@ export default function RecommendedSuppliersGallery({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300 font-black text-xs border border-emerald-500/30">
-              ✨
+              <IconAi className="w-3.5 h-3.5 text-emerald-300" />
             </span>
             <div>
               <p className="text-[10px] uppercase font-black tracking-widest text-emerald-400">
@@ -144,7 +145,10 @@ export default function RecommendedSuppliersGallery({
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 border border-emerald-400/40 px-3 py-1 text-xs font-bold text-emerald-300">
               <span>{activeSupplier.highlight_badge || 'Insumos Clave'}</span>
               <span>•</span>
-              <span>⭐ {activeSupplier.rating || 4.8} / 5</span>
+              <span className="inline-flex items-center gap-1">
+                <IconStar className="w-3 h-3 text-amber-300 fill-amber-300" />
+                {activeSupplier.rating || 4.8} / 5
+              </span>
             </div>
 
             <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">

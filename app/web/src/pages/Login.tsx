@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getApiOrigin, setCustomApiOrigin, DEFAULT_RENDER_URL } from '../lib/api';
+import { IconSettings } from '../components/Icons';
 
 export default function Login() {
   const { login } = useAuth();
@@ -82,7 +83,8 @@ export default function Login() {
             className="text-xs text-gray-500 hover:text-brand flex items-center gap-1 border border-gray-200 rounded px-2 py-1"
             title="Configurar URL del backend (Render)"
           >
-            ⚙️ {showConfig ? 'Ocultar servidor' : 'Servidor'}
+            <IconSettings className="w-3.5 h-3.5 text-gray-500" />
+            <span>{showConfig ? 'Ocultar servidor' : 'Servidor'}</span>
           </button>
         </div>
         <p className="mb-4 text-sm text-gray-600">Plataforma B2B de pedidos, inventario, facturación y logística</p>

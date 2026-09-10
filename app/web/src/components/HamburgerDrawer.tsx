@@ -2,7 +2,32 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import TermsModal from './TermsModal';
+import {
+  IconDashboard,
+  IconCatalog,
+  IconOrders,
+  IconCart,
+  IconInventory,
+  IconGps,
+  IconTeam,
+  IconSuppliers,
+  IconPlans,
+  IconAi,
+  IconInvoice,
+  IconAccounting,
+  IconSettings,
+  IconBell,
+  IconDocument,
+  IconSun,
+  IconMoon,
+  IconContrast,
+  IconGlobe,
+  IconLogout,
+  IconClose,
+} from './Icons';
 
 interface HamburgerDrawerProps {
   isOpen: boolean;
@@ -12,43 +37,17 @@ interface HamburgerDrawerProps {
 export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProps) {
   const { user, tenant, logout } = useAuth();
   const { count, openCart } = useCart();
+  const { isDarkMode, isHighContrast, toggleDarkMode, toggleHighContrast } = useTheme();
+  const { lang, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
 
   const [termsOpen, setTermsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
 
-  // Dark Mode State
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
-  });
-
-  // Language State
-  const [lang, setLang] = useState<'es' | 'en'>(() => {
-    return (localStorage.getItem('lang') as 'es' | 'en') || 'es';
-  });
-
   // Preferencias de alertas
   const [soundAlerts, setSoundAlerts] = useState(() => localStorage.getItem('pref_sound') !== 'false');
   const [stockAlerts, setStockAlerts] = useState(() => localStorage.getItem('pref_stock') !== 'false');
-
-  const toggleDarkMode = () => {
-    const nextMode = !isDarkMode;
-    setIsDarkMode(nextMode);
-    if (nextMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-
-  const toggleLanguage = () => {
-    const nextLang = lang === 'es' ? 'en' : 'es';
-    setLang(nextLang);
-    localStorage.setItem('lang', nextLang);
-  };
 
   const handleLogout = () => {
     onClose();
@@ -102,9 +101,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition cursor-pointer"
             aria-label="Cerrar menú lateral"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <IconClose className="w-5 h-5" />
           </button>
         </div>
 
@@ -113,13 +110,13 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {/* Módulos Principales */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              Módulos Principales
+              {lang === 'es' ? 'Módulos Principales' : 'Main Modules'}
             </p>
             <div className="space-y-1" onClick={onClose}>
               <Link to="/" className={linkItemClass}>
                 <span className="flex items-center gap-3">
-                  <span className="text-base">📊</span>
-                  <span>Inicio / Dashboard</span>
+                  <IconDashboard className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                  <span>{t('nav.dashboard')}</span>
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">PANEL</span>
               </Link>
@@ -127,8 +124,8 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               {!isDomiciliario && (
                 <Link to="/catalogo" className={linkItemClass}>
                   <span className="flex items-center gap-3">
-                    <span className="text-base">📦</span>
-                    <span>Catálogo de Insumos</span>
+                    <IconCatalog className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>{t('nav.catalog')}</span>
                   </span>
                   <span className="text-[10px] text-brand font-bold bg-brand/10 px-2 py-0.5 rounded-md">B2B</span>
                 </Link>
@@ -136,8 +133,8 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
 
               <Link to="/pedidos" className={linkItemClass}>
                 <span className="flex items-center gap-3">
-                  <span className="text-base">📋</span>
-                  <span>Gestión de Pedidos</span>
+                  <IconOrders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>{t('nav.orders')}</span>
                 </span>
               </Link>
 
@@ -151,8 +148,8 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                   className={`${linkItemClass} w-full text-left cursor-pointer`}
                 >
                   <span className="flex items-center gap-3">
-                    <span className="text-base">🛒</span>
-                    <span>Carrito de Insumos</span>
+                    <IconCart className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    <span>{t('nav.cart')}</span>
                   </span>
                   {count > 0 && (
                     <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs font-black text-white">
@@ -167,14 +164,14 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {/* Operaciones & Logística */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              Operaciones & Cadena de Suministro
+              {lang === 'es' ? 'Operaciones & Cadena de Suministro' : 'Operations & Supply Chain'}
             </p>
             <div className="space-y-1" onClick={onClose}>
               {isRestaurant && (
                 <Link to="/inventario" className={linkItemClass}>
                   <span className="flex items-center gap-3">
-                    <span className="text-base">🥦</span>
-                    <span>Control de Inventario (ROP)</span>
+                    <IconInventory className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <span>{t('nav.inventory')}</span>
                   </span>
                   <span className="text-[10px] text-slate-400 font-mono">STOCK</span>
                 </Link>
@@ -183,20 +180,26 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               {canTrack && (
                 <Link to="/logistica" className={linkItemClass}>
                   <span className="flex items-center gap-3">
-                    <span className="text-base">🗺️</span>
-                    <span>Mapa GPS y Despachos</span>
+                    <IconGps className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                    <span>{t('nav.deliveries')}</span>
                   </span>
-                  <span className="text-[10px] text-sky-700 bg-sky-100 font-bold px-2 py-0.5 rounded-md">EN VIVO</span>
+                  <span className="text-[10px] text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 font-bold px-2 py-0.5 rounded-md">
+                    {lang === 'es' ? 'EN VIVO' : 'LIVE'}
+                  </span>
                 </Link>
               )}
 
               {isOwner && (
                 <Link to="/equipo" className={linkItemClass}>
                   <span className="flex items-center gap-3">
-                    <span className="text-base">👥</span>
-                    <span>{isSupplier ? 'Flota de Domiciliarios' : 'Equipo de Empleados'}</span>
+                    <IconTeam className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>
+                      {isSupplier
+                        ? lang === 'es' ? 'Flota de Domiciliarios' : 'Driver Fleet'
+                        : lang === 'es' ? 'Equipo de Empleados' : 'Staff Team'}
+                    </span>
                   </span>
-                  <span className="text-[10px] text-purple-700 bg-purple-100 font-bold px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] text-purple-700 bg-purple-100 dark:bg-purple-900/50 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">
                     {isSupplier ? 'FLOTA' : 'EQUIPO'}
                   </span>
                 </Link>
@@ -204,8 +207,8 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
 
               <Link to="/proveedores" className={linkItemClass}>
                 <span className="flex items-center gap-3">
-                  <span className="text-base">🏢</span>
-                  <span>Directorio de Proveedores</span>
+                  <IconSuppliers className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  <span>{t('nav.suppliers')}</span>
                 </span>
               </Link>
             </div>
@@ -214,42 +217,42 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {/* Finanzas & Inteligencia */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              Finanzas & Automatización
+              {lang === 'es' ? 'Finanzas & Automatización' : 'Finance & Automation'}
             </p>
             <div className="space-y-1" onClick={onClose}>
               {isOwner && !isDomiciliario && (
                 <>
                   <Link to="/facturacion" className={linkItemClass}>
                     <span className="flex items-center gap-3">
-                      <span className="text-base">📑</span>
-                      <span>Facturación DIAN</span>
+                      <IconInvoice className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>{t('nav.invoices')}</span>
                     </span>
                   </Link>
 
                   <Link to="/contabilidad" className={linkItemClass}>
                     <span className="flex items-center gap-3">
-                      <span className="text-base">📈</span>
-                      <span>Contabilidad Gastronómica</span>
+                      <IconAccounting className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>{t('nav.accounting')}</span>
                     </span>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-md">PEPS</span>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-100 dark:bg-emerald-900/50 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">PEPS</span>
                   </Link>
                 </>
               )}
 
               <Link to="/planes" className={linkItemClass}>
                 <span className="flex items-center gap-3">
-                  <span className="text-base">💎</span>
-                  <span>Planes de Suscripción</span>
+                  <IconPlans className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                  <span>{t('nav.plans')}</span>
                 </span>
-                <span className="text-[10px] text-amber-700 bg-amber-100 font-bold px-2 py-0.5 rounded-md">ZUPPLY</span>
+                <span className="text-[10px] text-amber-700 bg-amber-100 dark:bg-amber-900/50 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">ZUPPLY</span>
               </Link>
 
               <Link to="/zupply-ia" className={linkItemClass}>
                 <span className="flex items-center gap-3">
-                  <span className="text-base">🤖</span>
-                  <span>Zupply Asistente IA</span>
+                  <IconAi className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>{t('nav.ai')}</span>
                 </span>
-                <span className="text-[10px] text-purple-700 bg-purple-100 font-bold px-2 py-0.5 rounded-md">IA 2.0</span>
+                <span className="text-[10px] text-purple-700 bg-purple-100 dark:bg-purple-900/50 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">IA 2.0</span>
               </Link>
             </div>
           </div>
@@ -257,7 +260,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {/* Configuración y Preferencias */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              Configuración & Sistema
+              {t('settings.title')}
             </p>
             <div className="space-y-1">
               {/* Settings Toggle */}
@@ -267,18 +270,18 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                 className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition text-left text-xs sm:text-sm dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <span className="flex items-center gap-3">
-                  <span>⚙️</span>
-                  <span>Settings (Perfil & Negocio)</span>
+                  <IconSettings className="w-4 h-4 text-slate-500" />
+                  <span>{t('settings.profile')}</span>
                 </span>
                 <span className="text-xs text-slate-400">{settingsOpen ? '▲' : '▼'}</span>
               </button>
 
               {settingsOpen && (
                 <div className="pl-9 pr-3 py-2 bg-slate-50 rounded-xl space-y-1 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300 animate-in fade-in">
-                  <p><b>Negocio:</b> {tenant?.name || 'Zupply'}</p>
-                  <p><b>Tipo:</b> {isSupplier ? 'Proveedor Mayorista' : 'Restaurante'}</p>
-                  <p><b>Usuario:</b> @{user?.username}</p>
-                  <p><b>Rol:</b> {user?.role}</p>
+                  <p><b>{lang === 'es' ? 'Negocio' : 'Business'}:</b> {tenant?.name || 'Zupply'}</p>
+                  <p><b>{lang === 'es' ? 'Tipo' : 'Type'}:</b> {isSupplier ? 'Proveedor Mayorista' : 'Restaurante'}</p>
+                  <p><b>{lang === 'es' ? 'Usuario' : 'User'}:</b> @{user?.username}</p>
+                  <p><b>{lang === 'es' ? 'Rol' : 'Role'}:</b> {user?.role}</p>
                 </div>
               )}
 
@@ -289,8 +292,8 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                 className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition text-left text-xs sm:text-sm dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <span className="flex items-center gap-3">
-                  <span>🔔</span>
-                  <span>Preferencias de Alertas</span>
+                  <IconBell className="w-4 h-4 text-slate-500" />
+                  <span>{t('settings.alerts')}</span>
                 </span>
                 <span className="text-xs text-slate-400">{preferencesOpen ? '▲' : '▼'}</span>
               </button>
@@ -298,7 +301,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               {preferencesOpen && (
                 <div className="pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl space-y-2 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300 animate-in fade-in">
                   <label className="flex items-center justify-between cursor-pointer">
-                    <span>Alertas sonoras de pedidos</span>
+                    <span>{lang === 'es' ? 'Alertas sonoras de pedidos' : 'Order sound alerts'}</span>
                     <input
                       type="checkbox"
                       checked={soundAlerts}
@@ -310,7 +313,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                     />
                   </label>
                   <label className="flex items-center justify-between cursor-pointer">
-                    <span>Aviso de stock bajo</span>
+                    <span>{lang === 'es' ? 'Aviso de stock bajo' : 'Low stock notices'}</span>
                     <input
                       type="checkbox"
                       checked={stockAlerts}
@@ -330,29 +333,33 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                 onClick={() => setTermsOpen(true)}
                 className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition text-left text-xs sm:text-sm dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
               >
-                <span>📜</span>
-                <span>Términos y Condiciones</span>
+                <IconDocument className="w-4 h-4 text-slate-500" />
+                <span>{t('settings.terms')}</span>
               </button>
             </div>
           </div>
 
-          {/* Opciones de Interfaz (Modo Oscuro & Idioma) */}
+          {/* Accesibilidad, Modo Oscuro & Idioma */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              Visualización & Idioma
+              {lang === 'es' ? 'Accesibilidad & Visualización' : 'Accessibility & Display'}
             </p>
             <div className="space-y-2.5 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
               {/* Modo Oscuro / Claro Switch */}
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 font-medium text-xs text-slate-700 dark:text-slate-200">
-                  <span>{isDarkMode ? '🌙' : '☀️'}</span>
-                  <span>Modo {isDarkMode ? 'Oscuro' : 'Claro'}</span>
+                  {isDarkMode ? (
+                    <IconMoon className="w-4 h-4 text-indigo-400" />
+                  ) : (
+                    <IconSun className="w-4 h-4 text-amber-500" />
+                  )}
+                  <span>{isDarkMode ? t('theme.dark') : t('theme.light')}</span>
                 </span>
                 <button
                   type="button"
                   onClick={toggleDarkMode}
                   className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer ${
-                    isDarkMode ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'
+                    isDarkMode ? 'bg-indigo-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
                   }`}
                   aria-label="Alternar modo oscuro"
                 >
@@ -360,18 +367,36 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                 </button>
               </div>
 
-              {/* Selector de Idioma */}
+              {/* Modo Alto Contraste (Accesibilidad) */}
               <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-slate-700/50 pt-2">
                 <span className="flex items-center gap-2 font-medium text-xs text-slate-700 dark:text-slate-200">
-                  <span>🌐</span>
-                  <span>Idioma / Language</span>
+                  <IconContrast className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                  <span>{isHighContrast ? t('theme.high_contrast') : t('theme.normal_contrast')}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleHighContrast}
+                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer ${
+                    isHighContrast ? 'bg-amber-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
+                  }`}
+                  aria-label="Alternar alto contraste"
+                >
+                  <div className="bg-white w-4 h-4 rounded-full shadow-md transform transition-transform" />
+                </button>
+              </div>
+
+              {/* Selector Rápido de Idioma */}
+              <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-slate-700/50 pt-2">
+                <span className="flex items-center gap-2 font-medium text-xs text-slate-700 dark:text-slate-200">
+                  <IconGlobe className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                  <span>{t('lang.label')}</span>
                 </span>
                 <button
                   type="button"
                   onClick={toggleLanguage}
-                  className="rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-white shadow-2xs hover:bg-slate-100 transition cursor-pointer uppercase"
+                  className="rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1 text-xs font-bold text-slate-800 dark:text-white shadow-2xs hover:bg-slate-100 dark:hover:bg-slate-600 transition cursor-pointer"
                 >
-                  {lang === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}
+                  {lang === 'es' ? 'ES (Español)' : 'EN (English)'}
                 </button>
               </div>
             </div>
@@ -385,10 +410,8 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 text-sm shadow-md transition active:scale-95 cursor-pointer"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>Cerrar Sesión</span>
+            <IconLogout className="w-4 h-4" />
+            <span>{t('nav.logout')}</span>
           </button>
         </div>
       </aside>

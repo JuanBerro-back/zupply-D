@@ -7,6 +7,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { Order } from '../types';
 import { ORDER_STATUS, SUPPLIER_FLOW, formatMoney, formatDate } from '../lib/constants';
 import Modal from '../components/Modal';
+import { IconTruck, IconKey, IconCheck, IconEdit } from '../components/Icons';
 
 export default function OrderDetail() {
   const { id } = useParams();
@@ -172,7 +173,7 @@ export default function OrderDetail() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-100 dark:border-slate-700 pb-3">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold">
-                  🚚
+                  <IconTruck className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 dark:text-white text-sm">Información y Estado de Entrega</h3>
@@ -211,7 +212,7 @@ export default function OrderDetail() {
             {isDriver && (
               <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-amber-900 shadow-xs dark:bg-amber-950/40 dark:border-amber-700 dark:text-amber-200">
                 <p className="font-bold text-xs sm:text-sm flex items-center gap-2">
-                  <span>🔑</span>
+                  <IconKey className="w-4 h-4 text-amber-700 dark:text-amber-300" />
                   <span>
                     Tu Llave de Entrega:{' '}
                     <span className="font-mono text-base sm:text-lg font-black bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 px-2.5 py-0.5 rounded-lg shadow-sm">
@@ -229,13 +230,13 @@ export default function OrderDetail() {
             {(isGerente || (user?.restaurant_id && !isSupplier && !isDriver)) && (
               latestDelivery.status === 'entregado' ? (
                 <div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 flex items-center gap-2 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300">
-                  <span>✅</span>
+                  <IconCheck className="w-4 h-4 text-emerald-600" />
                   <span>Envío completado exitosamente a satisfacción con la llave de seguridad.</span>
                 </div>
               ) : (
                 <div className="mt-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/80 p-4 shadow-sm dark:bg-indigo-950/40 dark:border-indigo-800">
                   <div className="flex items-start gap-2 mb-2">
-                    <span className="text-2xl">🔑</span>
+                    <IconKey className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
                         Completar Envío con Llave de Seguridad
@@ -293,9 +294,10 @@ export default function OrderDetail() {
                     });
                     setDeliveryModal(true);
                   }}
-                  className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"
+                  className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 inline-flex items-center gap-1.5"
                 >
-                  ✏️ Cambiar Domiciliario / Vehículo
+                  <IconEdit className="w-3.5 h-3.5" />
+                  <span>Cambiar Domiciliario / Vehículo</span>
                 </button>
               )}
             </div>

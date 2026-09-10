@@ -5,6 +5,8 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -18,13 +20,17 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <NotificationProvider>
-            <App />
-          </NotificationProvider>
-        </CartProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <CartProvider>
+              <NotificationProvider>
+                <App />
+              </NotificationProvider>
+            </CartProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>
 );

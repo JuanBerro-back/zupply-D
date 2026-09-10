@@ -6,6 +6,20 @@ import { useCart } from '../context/CartContext';
 import { Order, Product } from '../types';
 import { ORDER_STATUS, formatMoney, formatDate } from '../lib/constants';
 import RecommendedSuppliersGallery from '../components/RecommendedSuppliersGallery';
+import {
+  IconMotorcycle,
+  IconChart,
+  IconGps,
+  IconOrders,
+  IconAi,
+  IconKey,
+  IconBox,
+  IconInventory,
+  IconTeam,
+  IconSuppliers,
+  IconPlans,
+  IconMessage,
+} from '../components/Icons';
 
 interface MonthlyItem {
   month_key: string;
@@ -374,8 +388,8 @@ export default function Dashboard() {
         <div className="space-y-6 pb-12">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-black text-2xl">
-                🛵
+              <div className="h-12 w-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-black">
+                <IconMotorcycle className="w-7 h-7 text-sky-700" />
               </div>
               <div>
                 <h1 className="text-2xl font-black text-slate-800 tracking-tight">Panel de Reparto y Rutas GPS</h1>
@@ -392,7 +406,8 @@ export default function Dashboard() {
                 className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 px-3.5 py-3 text-xs font-bold shadow-xs hover:bg-emerald-600/30 active:scale-95 transition cursor-pointer"
                 title="Desplegar Módulos Dashboard"
               >
-                <span>📊 Módulos</span>
+                <IconChart className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
+                <span>Módulos</span>
                 <span>{dashboardMenuExpanded ? '▲' : '▼'}</span>
               </button>
 
@@ -405,7 +420,7 @@ export default function Dashboard() {
                 <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                <span>Menú (☰)</span>
+                <span>Menú</span>
               </button>
 
               <Link
@@ -441,7 +456,7 @@ export default function Dashboard() {
                   to="/logistica"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 hover:bg-sky-100 transition"
                 >
-                  <span className="text-2xl">🗺️</span>
+                  <IconGps className="w-6 h-6 text-sky-600" />
                   <div>
                     <p className="text-xs font-black text-sky-900 dark:text-sky-200">Rutas & Mapa Satelital</p>
                     <p className="text-[10px] text-sky-600 dark:text-sky-400">Telemetría de reparto activa</p>
@@ -452,7 +467,7 @@ export default function Dashboard() {
                   to="/pedidos"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition"
                 >
-                  <span className="text-2xl">📋</span>
+                  <IconOrders className="w-6 h-6 text-slate-600" />
                   <div>
                     <p className="text-xs font-black text-slate-900 dark:text-slate-100">Historial de Envíos</p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400">Entregas con llave de seguridad</p>
@@ -463,7 +478,7 @@ export default function Dashboard() {
                   to="/zupply-ia"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 transition"
                 >
-                  <span className="text-2xl">🤖</span>
+                  <IconAi className="w-6 h-6 text-indigo-600" />
                   <div>
                     <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Asistente Zupply IA</p>
                     <p className="text-[10px] text-indigo-600 dark:text-indigo-400">Preguntas sobre rutas y entregas</p>
@@ -510,7 +525,7 @@ export default function Dashboard() {
 
             {(!data.driver_deliveries || data.driver_deliveries.length === 0) ? (
               <div className="py-12 text-center text-slate-400 space-y-2">
-                <div className="text-4xl">🛵</div>
+                <IconMotorcycle className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
                 <p className="font-bold text-slate-700 text-sm">No tienes entregas pendientes en este momento</p>
                 <p className="text-xs">Tu proveedor te notificará cuando te asigne una nueva ruta de despacho.</p>
               </div>
@@ -541,8 +556,9 @@ export default function Dashboard() {
 
                     {del.confirmation_code && (
                       <div className="rounded-xl bg-amber-50 border-2 border-amber-300 p-3 text-center space-y-1">
-                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
-                          🔑 Llave de Seguridad para el Gerente:
+                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block inline-flex items-center justify-center gap-1">
+                          <IconKey className="w-3.5 h-3.5 text-amber-700 inline" />
+                          Llave de Seguridad para el Gerente:
                         </span>
                         <div className="text-2xl font-black font-mono text-amber-950 tracking-widest bg-white py-1 px-4 rounded-xl border border-amber-200 inline-block shadow-xs">
                           {del.confirmation_code}
@@ -594,7 +610,7 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Botón Destacado Menú Tipo Hamburguesa (☰) */}
+          {/* Botón Destacado Menú Tipo Hamburguesa */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
@@ -604,7 +620,7 @@ export default function Dashboard() {
             <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-            <span>Menú Completo (☰)</span>
+            <span>Menú Completo</span>
           </button>
 
           {!isSupplier && !isDomiciliario && (
@@ -642,7 +658,7 @@ export default function Dashboard() {
               className="flex items-center gap-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 active:scale-95 px-3 py-1.5 text-xs font-bold transition cursor-pointer"
               aria-expanded={dashboardMenuExpanded}
             >
-              <span className="text-sm">📊</span>
+              <IconChart className="w-4 h-4 text-emerald-300" />
               <span>Menú Desplegable Dashboard</span>
               <svg
                 className={`w-3.5 h-3.5 transition-transform duration-200 ${dashboardMenuExpanded ? 'rotate-180' : ''}`}
@@ -671,7 +687,7 @@ export default function Dashboard() {
               onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
               className="px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 transition text-[11px] font-semibold whitespace-nowrap cursor-pointer"
             >
-              ☰ Menú Lateral
+              Menú Lateral
             </button>
           </div>
         </div>
@@ -699,8 +715,8 @@ export default function Dashboard() {
                   to="/catalogo"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
                 >
-                  <div className="h-10 w-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-brand flex items-center justify-center text-xl group-hover:scale-105 transition">
-                    📦
+                  <div className="h-10 w-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-brand flex items-center justify-center group-hover:scale-105 transition">
+                    <IconBox className="w-5 h-5 text-brand" />
                   </div>
                   <div>
                     <p className="text-xs font-black text-slate-800 dark:text-white">Catálogo B2B</p>
@@ -714,8 +730,8 @@ export default function Dashboard() {
                 to="/pedidos"
                 className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
               >
-                <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
-                  📋
+                <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition">
+                  <IconOrders className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-slate-800 dark:text-white">Gestión de Pedidos</p>
@@ -729,8 +745,8 @@ export default function Dashboard() {
                   to="/inventario"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
                 >
-                  <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
-                    🥦
+                  <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition">
+                    <IconInventory className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
                     <p className="text-xs font-black text-slate-800 dark:text-white">Inventario (ROP)</p>
@@ -745,8 +761,8 @@ export default function Dashboard() {
                   to="/logistica"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-sky-200/80 dark:border-sky-800/80 shadow-xs hover:border-sky-500 hover:shadow-sm transition group"
                 >
-                  <div className="h-10 w-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
-                    🗺️
+                  <div className="h-10 w-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 flex items-center justify-center group-hover:scale-105 transition">
+                    <IconGps className="w-5 h-5 text-sky-600" />
                   </div>
                   <div>
                     <p className="text-xs font-black text-sky-900 dark:text-sky-200">Mapa GPS en Vivo</p>
@@ -761,8 +777,8 @@ export default function Dashboard() {
                   to="/equipo"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-purple-200/80 dark:border-purple-800/80 shadow-xs hover:border-purple-500 hover:shadow-sm transition group"
                 >
-                  <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
-                    👥
+                  <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition">
+                    <IconTeam className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
                     <p className="text-xs font-black text-purple-900 dark:text-purple-200">
@@ -780,8 +796,8 @@ export default function Dashboard() {
                 to="/proveedores"
                 className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
               >
-                <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center text-xl group-hover:scale-105 transition">
-                  🏢
+                <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center group-hover:scale-105 transition">
+                  <IconSuppliers className="w-5 h-5 text-slate-700 dark:text-slate-200" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-slate-800 dark:text-white">Proveedores</p>
@@ -794,8 +810,8 @@ export default function Dashboard() {
                 to="/planes"
                 className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-amber-200/80 dark:border-amber-800/80 shadow-xs hover:border-amber-500 hover:shadow-sm transition group"
               >
-                <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
-                  💎
+                <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition">
+                  <IconPlans className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-amber-900 dark:text-amber-200">Planes Zupply</p>
@@ -808,8 +824,8 @@ export default function Dashboard() {
                 to="/zupply-ia"
                 className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs hover:border-indigo-500 hover:shadow-sm transition group"
               >
-                <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
-                  🤖
+                <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition">
+                  <IconAi className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Zupply Asistente IA</p>
@@ -1361,7 +1377,10 @@ export default function Dashboard() {
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800"
                         >
-                          <span>💬 Contactar por WhatsApp</span>
+                          <span className="inline-flex items-center gap-1">
+                            <IconMessage className="w-4 h-4 text-emerald-600" />
+                            Contactar por WhatsApp
+                          </span>
                         </a>
                       ) : (
                         <span className="text-slate-400 text-[11px]">Sin contacto telefónico</span>

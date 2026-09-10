@@ -5,6 +5,7 @@ import Modal from '../components/Modal';
 import { useNotifications } from '../context/NotificationContext';
 import { formatDate } from '../lib/constants';
 import RecommendedSuppliersGallery from '../components/RecommendedSuppliersGallery';
+import { IconStar } from '../components/Icons';
 
 export default function Suppliers() {
   const { push } = useNotifications();
@@ -53,8 +54,9 @@ export default function Suppliers() {
           <button key={s.id} onClick={() => open(s)} className="rounded-lg border bg-white p-4 text-left shadow-sm hover:shadow">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="font-semibold">{s.name}</h3>
-              <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
-                ★ {Number(s.rating).toFixed(1)}
+              <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800 inline-flex items-center gap-1">
+                <IconStar className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                <span>{Number(s.rating).toFixed(1)}</span>
               </span>
             </div>
             <p className="text-sm text-gray-500">{s.category ?? 'General'} · {s.city ?? 'Bucaramanga'}</p>
@@ -79,7 +81,10 @@ export default function Suppliers() {
               <div key={r.id} className="rounded border p-2 text-sm">
                 <div className="flex justify-between">
                   <b>{r.reviewer_name}</b>
-                  <span className="text-yellow-600">★ {r.rating}</span>
+                  <span className="text-yellow-600 inline-flex items-center gap-1 font-bold">
+                    <IconStar className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <span>{r.rating}</span>
+                  </span>
                 </div>
                 <p className="text-gray-600">{r.comment}</p>
                 <p className="text-xs text-gray-400">{formatDate(r.created_at)}</p>
@@ -91,7 +96,7 @@ export default function Suppliers() {
               <label className="mb-1 block text-sm font-medium">Calificación</label>
               <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="w-full rounded border px-3 py-2">
                 {[5, 4, 3, 2, 1].map((r) => (
-                  <option key={r} value={r}>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</option>
+                  <option key={r} value={r}>{r} / 5 Estrellas</option>
                 ))}
               </select>
             </div>

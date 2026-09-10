@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../context/NotificationContext';
+import { useLanguage } from '../context/LanguageContext';
+import { IconBell, IconEmpty } from './Icons';
 
 export default function NotificationBell() {
   const { items, unread, clear, dismiss } = useNotifications();
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -26,8 +29,8 @@ export default function NotificationBell() {
         type="button"
         onClick={() => setOpen(!open)}
         className="relative flex items-center justify-center h-9 w-9 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white transition cursor-pointer"
-        title="Notificaciones del sistema"
-        aria-label="Campana de notificaciones"
+        title={t('nav_notifications')}
+        aria-label={t('nav_notifications')}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -49,9 +52,9 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-2 px-1">
             <div className="flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-100 text-sky-700 font-black text-xs dark:bg-sky-950 dark:text-sky-300">
-                🔔
+                <IconBell className="w-3.5 h-3.5" />
               </span>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notificaciones</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('nav_notifications')}</h3>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 {items.length}
               </span>
@@ -70,7 +73,7 @@ export default function NotificationBell() {
           <div className="max-h-72 overflow-y-auto space-y-2 pr-1 no-scrollbar">
             {items.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-400">
-                <p className="text-2xl mb-1">📭</p>
+                <IconEmpty className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                 No tienes notificaciones pendientes.
               </div>
             ) : (

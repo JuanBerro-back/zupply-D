@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import Modal from '../components/Modal';
+import { IconClose } from '../components/Icons';
 
 interface TeamUser {
   id: number;
@@ -315,7 +316,9 @@ export default function TeamManagement() {
             </svg>
             {error}
           </span>
-          <button onClick={() => setError('')} className="text-rose-500 font-bold">✕</button>
+          <button onClick={() => setError('')} className="text-rose-500 hover:text-rose-700 p-1" aria-label="Cerrar">
+            <IconClose className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -327,7 +330,9 @@ export default function TeamManagement() {
             </svg>
             {successMsg}
           </span>
-          <button onClick={() => setSuccessMsg('')} className="text-emerald-500 font-bold">✕</button>
+          <button onClick={() => setSuccessMsg('')} className="text-emerald-500 hover:text-emerald-700 p-1" aria-label="Cerrar">
+            <IconClose className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -382,9 +387,10 @@ export default function TeamManagement() {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label="Limpiar búsqueda"
             >
-              ✕
+              <IconClose className="w-3 h-3" />
             </button>
           )}
         </div>

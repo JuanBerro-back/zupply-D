@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { api } from '../lib/api';
 import { getActivePlan, setActivePlan, PlanTier, PLAN_CONFIG } from '../lib/planAccess';
+import { IconCheck, IconClose, IconStar } from '../components/Icons';
 
 const PLAN_DETAILS = [
   {
@@ -158,12 +159,12 @@ export default function Plans() {
         <div className="rounded-2xl bg-emerald-50 border-2 border-emerald-300 p-4 text-sm font-semibold text-emerald-800 flex items-center justify-between shadow-sm animate-fade-in">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-              ✓
+              <IconCheck className="w-4 h-4 text-emerald-600" />
             </div>
             <span>{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage('')} className="text-emerald-600 hover:text-emerald-900 font-bold">
-            ✕
+          <button onClick={() => setSuccessMessage('')} className="text-emerald-600 hover:text-emerald-900 p-1" aria-label="Cerrar">
+            <IconClose className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -207,12 +208,12 @@ export default function Plans() {
                   {p.features.map((f, idx) => (
                     <li key={idx} className="flex items-start gap-2.5">
                       {f.included ? (
-                        <span className="h-4 w-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                          ✓
+                        <span className="h-4 w-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                          <IconCheck className="w-2.5 h-2.5" />
                         </span>
                       ) : (
-                        <span className="h-4 w-4 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                          ✕
+                        <span className="h-4 w-4 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 mt-0.5">
+                          <IconClose className="w-2.5 h-2.5" />
                         </span>
                       )}
                       <span className={f.included ? 'font-medium text-slate-800' : 'text-slate-400 line-through'}>
@@ -232,7 +233,7 @@ export default function Plans() {
                     : p.buttonClass
                 }`}
               >
-                {isActive ? '✓ Plan Activo en tu Cuenta' : `Seleccionar ${p.name}`}
+                {isActive ? 'Plan Activo en tu Cuenta' : `Seleccionar ${p.name}`}
               </button>
             </div>
           );
@@ -261,51 +262,97 @@ export default function Plans() {
             <tbody className="divide-y divide-slate-100">
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Órdenes B2B y Catálogo de Insumos</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Esencial</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Ilimitado</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Ilimitado</td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Esencial</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Ilimitado</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Ilimitado</span>
+                </td>
               </tr>
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Entrega Segura con Llave/Código Gerente-Domiciliario</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Incluido</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Incluido</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Incluido</td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Incluido</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Incluido</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Incluido</span>
+                </td>
               </tr>
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Gestión de Equipo (Empleados / Domiciliarios)</td>
-                <td className="px-5 py-3 text-center text-slate-400">✕ Bloqueado</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Hasta 5 usuarios</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Flota Ilimitada</td>
+                <td className="px-5 py-3 text-center text-slate-400">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconClose className="w-3.5 h-3.5" /> Bloqueado</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Hasta 5 usuarios</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Flota Ilimitada</span>
+                </td>
               </tr>
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Recomendaciones de Proveedores según Gastronomía</td>
-                <td className="px-5 py-3 text-center text-slate-400">✕ Bloqueado</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Activo</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Prioridad VIP</td>
+                <td className="px-5 py-3 text-center text-slate-400">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconClose className="w-3.5 h-3.5" /> Bloqueado</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Activo</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Prioridad VIP</span>
+                </td>
               </tr>
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Recetario y Escandallo de Platos</td>
-                <td className="px-5 py-3 text-center text-slate-400">✕ Bloqueado</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Activo</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Ilimitado</td>
+                <td className="px-5 py-3 text-center text-slate-400">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconClose className="w-3.5 h-3.5" /> Bloqueado</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Activo</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Ilimitado</span>
+                </td>
               </tr>
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Alertas Inteligentes de Reorden (ROP)</td>
-                <td className="px-5 py-3 text-center text-slate-400">✕ Bloqueado</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Activo</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ En Tiempo Real</td>
+                <td className="px-5 py-3 text-center text-slate-400">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconClose className="w-3.5 h-3.5" /> Bloqueado</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Activo</span>
+                </td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> En Tiempo Real</span>
+                </td>
               </tr>
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Zupply Asistente IA (Ventana Flotante)</td>
                 <td className="px-5 py-3 text-center text-amber-600 font-bold">Consultas Básicas</td>
-                <td className="px-5 py-3 text-center text-emerald-600 font-bold">✓ Completo</td>
-                <td className="px-5 py-3 text-center text-purple-600 font-black">★ Modo Experto Ultra</td>
+                <td className="px-5 py-3 text-center text-emerald-600 font-bold">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Completo</span>
+                </td>
+                <td className="px-5 py-3 text-center text-purple-600 font-black">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconStar className="w-3.5 h-3.5 fill-purple-600" /> Modo Experto Ultra</span>
+                </td>
               </tr>
               <tr>
                 <td className="px-5 py-3 font-semibold text-slate-800">Predicción de Inventario y Demanda Futura con IA</td>
-                <td className="px-5 py-3 text-center text-slate-400">✕ Bloqueado</td>
-                <td className="px-5 py-3 text-center text-slate-400">✕ Bloqueado</td>
-                <td className="px-5 py-3 text-center text-purple-600 font-black">★ Algoritmo Neuronal</td>
+                <td className="px-5 py-3 text-center text-slate-400">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconClose className="w-3.5 h-3.5" /> Bloqueado</span>
+                </td>
+                <td className="px-5 py-3 text-center text-slate-400">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconClose className="w-3.5 h-3.5" /> Bloqueado</span>
+                </td>
+                <td className="px-5 py-3 text-center text-purple-600 font-black">
+                  <span className="inline-flex items-center gap-1 justify-center"><IconStar className="w-3.5 h-3.5 fill-purple-600" /> Algoritmo Neuronal</span>
+                </td>
               </tr>
             </tbody>
           </table>

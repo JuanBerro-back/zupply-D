@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, RegisterData } from '../context/AuthContext';
+import { IconFood, IconTruck } from '../components/Icons';
 
 const RESTAURANT_CATEGORIES = [
   { value: 'postres', label: 'Postres, Heladería & Pastelería' },
@@ -83,7 +84,7 @@ export default function Register() {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>🍽️</span>
+              <IconFood className="w-4 h-4" />
               <span>Restaurante</span>
             </button>
             <button
@@ -95,7 +96,7 @@ export default function Register() {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>🚚</span>
+              <IconTruck className="w-4 h-4" />
               <span>Proveedor</span>
             </button>
           </div>

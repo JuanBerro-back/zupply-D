@@ -3,5 +3,43 @@
 @tailwind utilities;
 
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+  @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-150;
+}
+
+/* Dark Mode Global Support */
+.dark body {
+  background-color: #0b1120;
+  color: #f8fafc;
+}
+
+/* High Contrast Accessibility Mode (WCAG AAA) */
+.high-contrast {
+  filter: contrast(115%);
+}
+
+.high-contrast body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+.high-contrast.dark body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast button,
+.high-contrast a,
+.high-contrast input,
+.high-contrast select,
+.high-contrast [class*="border"] {
+  border-color: currentColor !important;
+  border-width: 2px !important;
+}
+
+.high-contrast button:focus-visible,
+.high-contrast a:focus-visible,
+.high-contrast input:focus-visible {
+  outline: 3px solid #fbbf24 !important;
+  outline-offset: 3px !important;
 }
