@@ -6,7 +6,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import HamburgerDrawer from './HamburgerDrawer';
-import DashboardDropdownMenu from './DashboardDropdownMenu';
 import { IconMenu, IconLogout, IconSun, IconMoon, IconContrast, IconGlobe } from './Icons';
 
 export default function Navbar() {
@@ -196,8 +195,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* MENÚ DESPLEGABLE TIPO DASHBOARD (Móvil y Web) */}
-            <DashboardDropdownMenu onOpenFullDrawer={() => setDrawerOpen(true)} />
 
             {/* BOTÓN PROMINENTE DE MENÚ HAMBURGUESA CON TODO EL MENÚ */}
             <button
