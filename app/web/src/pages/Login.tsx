@@ -1,15 +1,20 @@
 import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getApiOrigin, setCustomApiOrigin, DEFAULT_RENDER_URL } from '../lib/api';
-import { IconSettings } from '../components/Icons';
+import { IconSettings, IconAndroid, IconDownload } from '../components/Icons';
 import AppDownloadNotice from '../components/AppDownloadNotice';
 
 export default function Login() {
   const { login } = useAuth();
+  const { lang } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  const backendOrigin = getApiOrigin();
+  const downloadUrl = backendOrigin ? `${backendOrigin}/download/apk` : '/download/apk';
 
   // Configuración de servidor / Render
   const [showConfig, setShowConfig] = useState(false);
@@ -90,6 +95,11 @@ export default function Login() {
         </div>
         <p className="mb-4 text-sm text-gray-600">Plataforma B2B de pedidos, inventario, facturación y logística</p>
 
+        {/* Banner destacado: ¿Aún no tienes Zupply App? */}
+        <div className="mb-4">
+          <AppDownloadNotice compact dismissible={false} />
+        </div>
+
         {showConfig && (
           <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/80 p-3 text-xs text-gray-700 space-y-2">
             <div className="font-semibold text-blue-900 flex justify-between items-center">
@@ -161,8 +171,25 @@ export default function Login() {
           <b>proveedor</b> · <b>domiciliario</b>
         </div>
 
-        <div className="mt-4">
-          <AppDownloadNotice compact />
+        {/* Enlace destacado directo al APK */}
+        <div className="mt-4 rounded-xl border border-emerald-300/80 bg-emerald-50/90 p-3 text-xs text-emerald-950 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white shrink-0 shadow-xs">
+              <IconAndroid className="w-4 h-4 text-white" />
+            </span>
+            <div className="min-w-0 font-bold text-emerald-950">
+              {lang === 'en' ? "Don't have Zupply App yet?" : '¿Aún no tienes Zupply App?'}
+            </div>
+          </div>
+          <a
+            href={downloadUrl}
+            download="Zupply.apk"
+            className="shrink-0 inline-flex items-center justify-center gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 py-1.5 rounded-lg shadow-xs transition text-xs cursor-pointer"
+            title="Descargar instalador Zupply.apk"
+          >
+            <IconDownload className="w-3.5 h-3.5 text-white" />
+            <span>{lang === 'en' ? 'Download APK' : 'Descargar APK'}</span>
+          </a>
         </div>
       </div>
     </div>

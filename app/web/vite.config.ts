@@ -10,6 +10,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': { target, changeOrigin: true },
+      '/download': { target, changeOrigin: true },
       '/socket.io': { target, ws: true },
     },
   },

@@ -6,28 +6,35 @@ import { IconAndroid, IconDownload, IconClose, IconCheck } from './Icons';
 interface AppDownloadNoticeProps {
   className?: string;
   compact?: boolean;
+  dismissible?: boolean;
 }
 
-export default function AppDownloadNotice({ className = '', compact = false }: AppDownloadNoticeProps) {
+export default function AppDownloadNotice({
+  className = '',
+  compact = false,
+  dismissible = true,
+}: AppDownloadNoticeProps) {
   const { lang } = useLanguage();
   const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false;
+    if (!dismissible || typeof window === 'undefined') return false;
     return sessionStorage.getItem('zupply_hide_app_notice') === 'true';
   });
   const [copied, setCopied] = useState(false);
 
-  // Si el usuario ya está usando la app nativa en Android, no mostramos el aviso
-  if (isCapacitorNative() || dismissed) {
+  // Si el usuario ya está usando la app nativa en Android, o si fue descartado (cuando es descartable)
+  if (isCapacitorNative() || (dismissible && dismissed)) {
     return null;
   }
 
   // URL absoluta o relativa de descarga del APK
   const backendOrigin = getApiOrigin();
-  const downloadUrl = backendOrigin ? `${backendOrigin}/download/apk` : '/Zupply.apk';
+  const downloadUrl = backendOrigin ? `${backendOrigin}/download/apk` : '/download/apk';
 
   const handleDismiss = () => {
-    setDismissed(true);
-    sessionStorage.setItem('zupply_hide_app_notice', 'true');
+    if (dismissible) {
+      setDismissed(true);
+      sessionStorage.setItem('zupply_hide_app_notice', 'true');
+    }
   };
 
   const handleCopyLink = async () => {
@@ -44,18 +51,20 @@ export default function AppDownloadNotice({ className = '', compact = false }: A
   if (compact) {
     return (
       <div
-        className={`rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-sky-950/80 p-3 text-white shadow-md flex items-center justify-between gap-3 ${className}`}
+        className={`rounded-2xl border-2 border-emerald-500/70 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-3.5 text-white shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 ${className}`}
+        role="region"
+        aria-label="Aviso de descarga de Zupply App"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="h-8 w-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
-            <IconAndroid className="w-4 h-4 text-emerald-400" />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-400/50">
+            <IconAndroid className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black text-white truncate">
+            <p className="text-xs sm:text-sm font-black text-white leading-tight">
               {lang === 'en' ? "Don't have Zupply App yet?" : '¿Aún no tienes Zupply App?'}
             </p>
-            <p className="text-[10px] text-emerald-300/90 truncate">
-              {lang === 'en' ? 'Download the official Android APK' : 'Descarga el APK oficial para Android'}
+            <p className="text-[11px] text-emerald-300 font-medium">
+              {lang === 'en' ? 'Download official Android APK (v1.0)' : 'Descarga el APK oficial para Android'}
             </p>
           </div>
         </div>
@@ -63,9 +72,9 @@ export default function AppDownloadNotice({ className = '', compact = false }: A
         <a
           href={downloadUrl}
           download="Zupply.apk"
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs transition shadow-sm"
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs transition shadow-md cursor-pointer"
         >
-          <IconDownload className="w-3.5 h-3.5" />
+          <IconDownload className="w-4 h-4 text-slate-950" />
           <span>{lang === 'en' ? 'Download APK' : 'Descargar APK'}</span>
         </a>
       </div>
@@ -130,15 +139,17 @@ export default function AppDownloadNotice({ className = '', compact = false }: A
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={handleDismiss}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
-            title={lang === 'en' ? 'Dismiss' : 'Ocultar aviso'}
-            aria-label="Cerrar aviso"
-          >
-            <IconClose className="w-4 h-4" />
-          </button>
+          {dismissible && (
+            <button
+              type="button"
+              onClick={handleDismiss}
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              title={lang === 'en' ? 'Dismiss' : 'Ocultar aviso'}
+              aria-label="Cerrar aviso"
+            >
+              <IconClose className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </div>
