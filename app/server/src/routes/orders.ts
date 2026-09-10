@@ -162,12 +162,28 @@ router.get('/:id', async (req, res, next) => {
     }
     const items = await query('SELECT * FROM order_items WHERE order_id = $1 ORDER BY id', [req.params.id]);
     const deliveries = await query(
-      `SELECT d.*, u.name AS driver_name FROM deliveries d
+      `SELECT d.*, u.name AS driver_name, u.phone AS driver_phone,
+              v.name AS vehicle_name, v.plate, v.type AS vehicle_type
+       FROM deliveries d
        LEFT JOIN users u ON u.id = d.driver_id
+       LEFT JOIN vehicles v ON v.id = d.vehicle_id
        WHERE d.order_id = $1 ORDER BY d.created_at DESC`,
       [req.params.id]
     );
-    res.json({ ...order, items: items.rows, deliveries: deliveries.rows });
+
+    let deliveriesList = deliveries.rows;
+    // Para el gerente, el domiciliario lleva el código; el gerente no lo ve en la pantalla antes de la entrega
+    if (user.role === 'gerente' || (user.restaurant_id && user.role !== 'admin')) {
+      deliveriesList = deliveriesList.map((d: any) => {
+        if (d.status !== 'entregado') {
+          const { confirmation_code, ...rest } = d;
+          return { ...rest, has_security_code: true };
+        }
+        return d;
+      });
+    }
+
+    res.json({ ...order, items: items.rows, deliveries: deliveriesList });
   } catch (err) {
     next(err);
   }

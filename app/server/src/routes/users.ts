@@ -28,23 +28,24 @@ router.get('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req,
     if (user.role === 'proveedor_admin') {
       if (user.supplier_id) {
         params.push(user.supplier_id);
-        // Incluir personal del proveedor, cualquier domiciliario o usuarios independientes
-        sql += ` AND (u.supplier_id = $${params.length} OR r.name = 'domiciliario' OR (u.supplier_id IS NULL AND u.restaurant_id IS NULL))`;
+        // Proveedor es jefe del domiciliario: solo ve domiciliarios de su empresa
+        sql += ` AND r.name = 'domiciliario' AND (u.supplier_id = $${params.length} OR u.supplier_id IS NULL)`;
       } else {
-        sql += ` AND (r.name = 'domiciliario' OR u.supplier_id IS NULL)`;
+        sql += ` AND r.name = 'domiciliario'`;
       }
-    } else if (user.restaurant_id) {
-      params.push(user.restaurant_id);
-      // Incluir personal del restaurante o domiciliarios disponibles
-      sql += ` AND (u.restaurant_id = $${params.length} OR r.name = 'domiciliario')`;
+    } else if (user.role === 'gerente' || user.restaurant_id) {
+      if (user.restaurant_id) {
+        params.push(user.restaurant_id);
+        // Gerente es jefe del empleado: solo ve empleados operativos de su restaurante
+        sql += ` AND r.name = 'empleado' AND u.restaurant_id = $${params.length}`;
+      } else {
+        sql += ` AND r.name = 'empleado'`;
+      }
     } else if (user.role !== 'admin') {
       return res.status(403).json({ error: 'No autorizado' });
     }
 
-    sql += ` ORDER BY 
-      (CASE WHEN r.name = 'domiciliario' THEN 0 ELSE 1 END),
-      u.is_active DESC,
-      u.created_at DESC`;
+    sql += ` ORDER BY u.is_active DESC, u.created_at DESC`;
 
     const result = await query(sql, params);
     res.json(result.rows);
@@ -62,14 +63,15 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
     }
 
     const numericRoleId = Number(role_id);
+    // Gerente solo crea empleado (id 3). Proveedor solo crea domiciliario (id 5).
     const allowedRoles = user.role === 'proveedor_admin'
-      ? [4, 5]
-      : user.restaurant_id
-        ? [2, 3, 5]
+      ? [5]
+      : (user.role === 'gerente' || user.restaurant_id)
+        ? [3]
         : [1, 2, 3, 4, 5];
 
     if (!allowedRoles.includes(numericRoleId)) {
-      return res.status(403).json({ error: 'No puedes crear usuarios con ese rol' });
+      return res.status(403).json({ error: 'No tienes permisos para crear usuarios con ese rol' });
     }
 
     const exists = await query('SELECT id FROM users WHERE username = $1', [username.trim()]);
@@ -110,19 +112,25 @@ router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (r
     const targetUser = target.rows[0];
 
     const isDomiciliario = targetUser.role_id === 5;
-    if (user.role === 'proveedor_admin' && !isDomiciliario && targetUser.supplier_id !== user.supplier_id) {
-      return res.status(403).json({ error: 'No autorizado' });
+    const isEmpleado = targetUser.role_id === 3;
+
+    if (user.role === 'proveedor_admin') {
+      if (!isDomiciliario || (targetUser.supplier_id && targetUser.supplier_id !== user.supplier_id)) {
+        return res.status(403).json({ error: 'Solo puedes gestionar domiciliarios de tu empresa' });
+      }
     }
-    if (user.restaurant_id && !isDomiciliario && targetUser.restaurant_id !== user.restaurant_id) {
-      return res.status(403).json({ error: 'No autorizado' });
+    if (user.role === 'gerente' || user.restaurant_id) {
+      if (!isEmpleado || targetUser.restaurant_id !== user.restaurant_id) {
+        return res.status(403).json({ error: 'Solo puedes gestionar empleados de tu restaurante' });
+      }
     }
 
     const numericRoleId = role_id ? Number(role_id) : undefined;
     if (numericRoleId && numericRoleId !== targetUser.role_id) {
       const allowedRoles = user.role === 'proveedor_admin'
-        ? [4, 5]
-        : user.restaurant_id
-          ? [2, 3, 5]
+        ? [5]
+        : (user.role === 'gerente' || user.restaurant_id)
+          ? [3]
           : [1, 2, 3, 4, 5];
       if (!allowedRoles.includes(numericRoleId)) {
         return res.status(403).json({ error: 'No puedes asignar ese rol' });
@@ -155,11 +163,16 @@ router.delete('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async
     const targetUser = target.rows[0];
 
     const isDomiciliario = targetUser.role_id === 5;
-    if (user.role === 'proveedor_admin' && !isDomiciliario && targetUser.supplier_id !== user.supplier_id) {
-      return res.status(403).json({ error: 'No autorizado' });
+    const isEmpleado = targetUser.role_id === 3;
+    if (user.role === 'proveedor_admin') {
+      if (!isDomiciliario || (targetUser.supplier_id && targetUser.supplier_id !== user.supplier_id)) {
+        return res.status(403).json({ error: 'Solo puedes gestionar domiciliarios de tu empresa' });
+      }
     }
-    if (user.restaurant_id && !isDomiciliario && targetUser.restaurant_id !== user.restaurant_id) {
-      return res.status(403).json({ error: 'No autorizado' });
+    if (user.role === 'gerente' || user.restaurant_id) {
+      if (!isEmpleado || targetUser.restaurant_id !== user.restaurant_id) {
+        return res.status(403).json({ error: 'Solo puedes gestionar empleados de tu restaurante' });
+      }
     }
     if (targetUser.id === user.id) {
       return res.status(400).json({ error: 'No puedes desactivarte a ti mismo' });
@@ -183,11 +196,16 @@ router.patch('/:id/password', roleRequired('admin', 'gerente', 'proveedor_admin'
     const targetUser = target.rows[0];
 
     const isDomiciliario = targetUser.role_id === 5;
-    if (user.role === 'proveedor_admin' && !isDomiciliario && targetUser.supplier_id !== user.supplier_id) {
-      return res.status(403).json({ error: 'No autorizado' });
+    const isEmpleado = targetUser.role_id === 3;
+    if (user.role === 'proveedor_admin') {
+      if (!isDomiciliario || (targetUser.supplier_id && targetUser.supplier_id !== user.supplier_id)) {
+        return res.status(403).json({ error: 'Solo puedes gestionar domiciliarios de tu empresa' });
+      }
     }
-    if (user.restaurant_id && !isDomiciliario && targetUser.restaurant_id !== user.restaurant_id) {
-      return res.status(403).json({ error: 'No autorizado' });
+    if (user.role === 'gerente' || user.restaurant_id) {
+      if (!isEmpleado || targetUser.restaurant_id !== user.restaurant_id) {
+        return res.status(403).json({ error: 'Solo puedes gestionar empleados de tu restaurante' });
+      }
     }
     const hash = await bcrypt.hash(String(password), 10);
     await query('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, req.params.id]);

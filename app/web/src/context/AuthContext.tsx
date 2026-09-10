@@ -10,6 +10,7 @@ export interface RegisterData {
   email: string;
   phone: string;
   type: 'restaurante' | 'proveedor';
+  category?: string;
 }
 
 interface AuthContextValue {

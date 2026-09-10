@@ -172,9 +172,24 @@ router.get('/summary', async (req, res, next) => {
       ];
     }
 
-    // 5. Proveedor: Info de sus productos y restaurantes emergentes
+    // 5. Proveedor: Info de sus productos y restaurantes clientes potenciales basados en lo que vende
     let my_products = null;
     let emerging_restaurants: any[] = [];
+    let prospective_restaurants: any[] = [];
+
+    // Obtener categoría del proveedor o restaurante
+    let supplierCategory = 'Carnes';
+    if (user.supplier_id) {
+      const sRow = await query('SELECT category FROM suppliers WHERE id = $1', [user.supplier_id]);
+      if (sRow.rowCount && sRow.rows[0].category) supplierCategory = sRow.rows[0].category;
+    }
+
+    let restaurantCategory = 'BBQ & Parrilla';
+    if (user.restaurant_id) {
+      const rRow = await query('SELECT category FROM restaurants WHERE id = $1', [user.restaurant_id]);
+      if (rRow.rowCount && rRow.rows[0].category) restaurantCategory = rRow.rows[0].category;
+    }
+
     if (isSupplier || user.role === 'admin') {
       let myProdWhere = '';
       const myProdParams: unknown[] = [];
@@ -201,16 +216,63 @@ router.get('/summary', async (req, res, next) => {
       };
 
       const restRes = await query(
-        `SELECT r.id, r.name, r.city, r.address, r.phone, r.email, r.created_at
+        `SELECT r.id, r.name, r.city, r.address, r.phone, r.email, r.category, r.created_at
          FROM restaurants r
          ORDER BY r.created_at DESC
-         LIMIT 6`
+         LIMIT 10`
       ).catch(() => ({ rows: [] }));
+
       emerging_restaurants = restRes.rows.length > 0 ? restRes.rows : [
-        { id: 501, name: 'Burger & Co. Cabecera', city: 'Bucaramanga', address: 'Cra 35 # 48-12', phone: '3158765432', email: 'contacto@burgerco.com', created_at: new Date().toISOString() },
-        { id: 502, name: 'Trattoria Bella Vista', city: 'Floridablanca', address: 'Cañaveral Centro', phone: '3187654321', email: 'gerencia@trattoria.com', created_at: new Date().toISOString() },
-        { id: 503, name: 'Tacos & Mezcal Gourmet', city: 'Piedecuesta', address: 'Calle 10 # 7-25', phone: '3123456789', email: 'pedidos@tacosmezcal.com', created_at: new Date().toISOString() },
+        { id: 501, name: 'Rancho Grande BGA', category: 'BBQ & Parrilla', city: 'Bucaramanga', address: 'Cra 27 #45-32, Cabecera', phone: '(607) 634-5678', email: 'info@ranchogrande.com', created_at: new Date().toISOString() },
+        { id: 502, name: 'Fogon Santandereano', category: 'Latino & Comida Típica', city: 'Bucaramanga', address: 'Calle 35 #22-10, San Pio', phone: '(607) 634-1234', email: 'contacto@fogonsantandereano.com', created_at: new Date().toISOString() },
+        { id: 503, name: 'El Corral BGA', category: 'Hamburguesas & Fast Food', city: 'Bucaramanga', address: 'Cra 30 #55-18, Cabecera', phone: '(607) 634-4321', email: 'info@elcorralbga.com', created_at: new Date().toISOString() },
+        { id: 504, name: 'Sweet Bakery & Café', category: 'Postres & Pastelería', city: 'Floridablanca', address: 'Cañaveral Plaza Local 12', phone: '3189988776', email: 'hola@sweetbakery.com', created_at: new Date().toISOString() },
+        { id: 505, name: 'Brunch & Co. Búcaros', category: 'Brunch & Cafés', city: 'Bucaramanga', address: 'Calle 48 #34-20', phone: '3157766554', email: 'pedidos@brunchco.com', created_at: new Date().toISOString() },
+        { id: 506, name: 'Sushi Sakura Gourmet', category: 'Asiático & Sushi', city: 'Bucaramanga', address: 'Carrera 36 #52-19', phone: '3174433221', email: 'contacto@sakurabga.com', created_at: new Date().toISOString() },
       ];
+
+      // Calcular prospectos potenciales basados en lo que vende el proveedor
+      prospective_restaurants = emerging_restaurants.map((rest: any) => {
+        let affinity = 85;
+        let reasons = ['Requiere insumos regulares de despensas mayoristas'];
+        const cat = (rest.category || '').toLowerCase();
+        const sCat = supplierCategory.toLowerCase();
+
+        if (sCat.includes('carne') || sCat.includes('pollo') || sCat.includes('cerdo')) {
+          if (cat.includes('bbq') || cat.includes('parrilla') || cat.includes('hamburguesa') || cat.includes('latino')) {
+            affinity = 98;
+            reasons = ['Alto consumo diario de cortes vacunos, cerdo y embutidos', 'Pedidos semanales superiores a 80kg'];
+          } else {
+            affinity = 70;
+            reasons = ['Uso ocasional de proteínas en recetas de carta'];
+          }
+        } else if (sCat.includes('lacteo') || sCat.includes('queso')) {
+          if (cat.includes('postre') || cat.includes('brunch') || cat.includes('pizz') || cat.includes('cafe')) {
+            affinity = 97;
+            reasons = ['Alta rotación de cremas, quesos madurados y mantequillas', 'Insumo crítico diario'];
+          } else {
+            affinity = 75;
+            reasons = ['Uso para salsas y guarniciones'];
+          }
+        } else if (sCat.includes('marisco') || sCat.includes('pescado')) {
+          if (cat.includes('asiatico') || cat.includes('sushi') || cat.includes('marisqueria')) {
+            affinity = 99;
+            reasons = ['Consumo intensivo de salmón, atún, camarón y langostinos', 'Exige frescura de entrega matutina'];
+          } else {
+            affinity = 65;
+            reasons = ['Platos especiales del fin de semana'];
+          }
+        } else {
+          affinity = 90;
+          reasons = ['Insumo transversal para cocina profesional'];
+        }
+
+        return {
+          ...rest,
+          affinity_score: affinity,
+          match_reasons: reasons,
+        };
+      }).sort((a: any, b: any) => b.affinity_score - a.affinity_score);
     }
 
     // 6. Domiciliario: Entregas asignadas hoy
@@ -229,7 +291,58 @@ router.get('/summary', async (req, res, next) => {
       today_deliveries = delivRes.rows;
     }
 
-    // 7. Banner tipo galería de fotos: Novedades y Foro de la App
+    // 7. Proveedores recomendados para el Restaurante (Banner Galería según platos y categoría)
+    let recommended_suppliers: any[] = [];
+    const rawSuppliers = await query(
+      `SELECT s.id, s.name, s.category, s.rating, s.review_count, s.city, s.phone, s.logo_url
+       FROM suppliers s WHERE s.is_active = TRUE`
+    ).catch(() => ({ rows: [] }));
+
+    const supRows = rawSuppliers.rows.length > 0 ? rawSuppliers.rows : [
+      { id: 1, name: 'Carnes El Paisa S.A.S', category: 'Carnes', rating: 4.8, review_count: 45, city: 'Bucaramanga' },
+      { id: 2, name: 'Lacteos del Norte', category: 'Lacteos', rating: 4.6, review_count: 32, city: 'Bucaramanga' },
+      { id: 3, name: 'Mariscos del Caribe', category: 'Mariscos', rating: 4.9, review_count: 28, city: 'Bucaramanga' },
+      { id: 4, name: 'Verduras Frescas SAS', category: 'Verduras', rating: 4.5, review_count: 19, city: 'Bucaramanga' },
+      { id: 5, name: 'Distribuidora de Bebidas', category: 'Bebidas', rating: 4.7, review_count: 37, city: 'Bucaramanga' },
+    ];
+
+    const categoryPhotos: Record<string, { img: string; tag: string }> = {
+      'Carnes': {
+        img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
+        tag: 'Cortes Madurados & Parrilla',
+      },
+      'Lacteos': {
+        img: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=800&auto=format&fit=crop&q=80',
+        tag: 'Quesos Artesanales & Repostería',
+      },
+      'Mariscos': {
+        img: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800&auto=format&fit=crop&q=80',
+        tag: 'Pesca Fresca del Pacífico y Caribe',
+      },
+      'Verduras': {
+        img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80',
+        tag: 'Cosecha Fresca de Santander',
+      },
+      'Bebidas': {
+        img: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800&auto=format&fit=crop&q=80',
+        tag: 'Licores, Cafés y Gaseosas',
+      },
+    };
+
+    recommended_suppliers = supRows.map((s: any) => {
+      const meta = categoryPhotos[s.category] || {
+        img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
+        tag: 'Distribución Mayorista B2B',
+      };
+      return {
+        ...s,
+        image_url: meta.img,
+        highlight_badge: meta.tag,
+        recommended_for: `Ideal para menús de ${restaurantCategory}`,
+      };
+    });
+
+    // 8. Banner tipo galería de fotos: Novedades y Comunidad
     const announcements = [
       {
         id: 1,
@@ -287,6 +400,10 @@ router.get('/summary', async (req, res, next) => {
       daily_discounts,
       my_products,
       emerging_restaurants,
+      prospective_restaurants,
+      recommended_suppliers,
+      restaurant_category: restaurantCategory,
+      supplier_category: supplierCategory,
       today_deliveries,
       announcements,
     });

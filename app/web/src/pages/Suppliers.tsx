@@ -4,6 +4,7 @@ import { Supplier, Review } from '../types';
 import Modal from '../components/Modal';
 import { useNotifications } from '../context/NotificationContext';
 import { formatDate } from '../lib/constants';
+import RecommendedSuppliersGallery from '../components/RecommendedSuppliersGallery';
 
 export default function Suppliers() {
   const { push } = useNotifications();
@@ -42,9 +43,12 @@ export default function Suppliers() {
   };
 
   return (
-    <div>
-      <h2 className="mb-4 text-xl font-bold">Proveedores</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6">
+      <RecommendedSuppliersGallery />
+
+      <div>
+        <h2 className="mb-4 text-xl font-bold">Directorio General de Proveedores</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {suppliers.map((s) => (
           <button key={s.id} onClick={() => open(s)} className="rounded-lg border bg-white p-4 text-left shadow-sm hover:shadow">
             <div className="mb-1 flex items-center justify-between">
@@ -57,6 +61,7 @@ export default function Suppliers() {
             <p className="mt-2 text-xs text-gray-400">{s.review_count} reseña(s)</p>
           </button>
         ))}
+        </div>
       </div>
 
       {selected && (

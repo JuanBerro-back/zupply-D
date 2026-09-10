@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { Order, Product } from '../types';
 import { ORDER_STATUS, formatMoney, formatDate } from '../lib/constants';
+import RecommendedSuppliersGallery from '../components/RecommendedSuppliersGallery';
 
 interface MonthlyItem {
   month_key: string;
@@ -59,6 +60,28 @@ interface EmergingRestaurant {
   created_at: string;
 }
 
+export interface ProspectiveRestaurant {
+  id: number;
+  name: string;
+  category: string;
+  city: string;
+  address: string;
+  phone: string;
+  potential_needs: string[];
+  compatibility_score: number;
+}
+
+export interface DriverDeliveryItem {
+  id: number;
+  order_id: number;
+  order_code: string;
+  restaurant_name: string;
+  delivery_address: string;
+  status: string;
+  confirmation_code?: string;
+  scheduled_time?: string;
+}
+
 interface SupplierProductsInfo {
   total_skus: number;
   low_stock_count: number;
@@ -95,6 +118,8 @@ interface DashboardData {
   daily_discounts: DiscountItem[];
   my_products: SupplierProductsInfo | null;
   emerging_restaurants: EmergingRestaurant[];
+  prospective_restaurants?: ProspectiveRestaurant[];
+  driver_deliveries?: DriverDeliveryItem[];
   today_deliveries: any[];
   announcements: Announcement[];
 }
@@ -232,6 +257,9 @@ export default function Dashboard() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Menú Desplegable tipo Dashboard interactivo
+  const [dashboardMenuExpanded, setDashboardMenuExpanded] = useState(false);
+
   useEffect(() => {
     api<DashboardData>('/dashboard/summary')
       .then((res) => {
@@ -341,8 +369,220 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 1. Cabecera y Bienvenida Personalizada */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      {/* Vista Exclusiva y Dedicada para Domiciliarios */}
+      {isDomiciliario && (
+        <div className="space-y-6 pb-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-black text-2xl">
+                🛵
+              </div>
+              <div>
+                <h1 className="text-2xl font-black text-slate-800 tracking-tight">Panel de Reparto y Rutas GPS</h1>
+                <p className="text-xs text-slate-500">
+                  Conductor: <span className="font-bold text-slate-700">{user?.name || user?.username}</span> · Telemetría activa en Bucaramanga
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setDashboardMenuExpanded(!dashboardMenuExpanded)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 px-3.5 py-3 text-xs font-bold shadow-xs hover:bg-emerald-600/30 active:scale-95 transition cursor-pointer"
+                title="Desplegar Módulos Dashboard"
+              >
+                <span>📊 Módulos</span>
+                <span>{dashboardMenuExpanded ? '▲' : '▼'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-md hover:bg-slate-800 active:scale-95 transition cursor-pointer"
+                title="Abrir menú tipo hamburguesa"
+              >
+                <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span>Menú (☰)</span>
+              </button>
+
+              <Link
+                to="/logistica"
+                className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-sky-700 active:scale-95 transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <span>Abrir Mapa GPS en Vivo</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Menú Desplegable tipo Dashboard para Domiciliarios */}
+          {dashboardMenuExpanded && (
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Módulos de Conductor & Reparto
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setDashboardMenuExpanded(false)}
+                  className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  ▲ Contraer
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Link
+                  to="/logistica"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 hover:bg-sky-100 transition"
+                >
+                  <span className="text-2xl">🗺️</span>
+                  <div>
+                    <p className="text-xs font-black text-sky-900 dark:text-sky-200">Rutas & Mapa Satelital</p>
+                    <p className="text-[10px] text-sky-600 dark:text-sky-400">Telemetría de reparto activa</p>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/pedidos"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition"
+                >
+                  <span className="text-2xl">📋</span>
+                  <div>
+                    <p className="text-xs font-black text-slate-900 dark:text-slate-100">Historial de Envíos</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Entregas con llave de seguridad</p>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/zupply-ia"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 transition"
+                >
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Asistente Zupply IA</p>
+                    <p className="text-[10px] text-indigo-600 dark:text-indigo-400">Preguntas sobre rutas y entregas</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl bg-white p-4 border border-slate-200 shadow-sm">
+              <span className="text-xs font-semibold text-slate-400 block uppercase">Estado Telemetría</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-bold text-emerald-700">GPS Activo y Transmitiendo</span>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white p-4 border border-slate-200 shadow-sm">
+              <span className="text-xs font-semibold text-slate-400 block uppercase">Pedidos Asignados</span>
+              <p className="text-2xl font-black text-slate-900 mt-0.5">
+                {(data.driver_deliveries || data.today_deliveries || []).length}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white p-4 border border-slate-200 shadow-sm">
+              <span className="text-xs font-semibold text-slate-400 block uppercase">Navegación Rápida</span>
+              <Link to="/logistica" className="text-xs font-bold text-sky-600 hover:underline mt-1.5 inline-block">
+                Ver recorrido en mapa satelital →
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">Entregas Asignadas (Con Llave de Seguridad)</h2>
+                <p className="text-xs text-slate-500">
+                  Lleva este código al restaurante. El gerente lo necesita para validar la entrega.
+                </p>
+              </div>
+              <Link to="/logistica" className="text-xs font-bold text-sky-600 hover:underline">
+                Ver mapa completo →
+              </Link>
+            </div>
+
+            {(!data.driver_deliveries || data.driver_deliveries.length === 0) ? (
+              <div className="py-12 text-center text-slate-400 space-y-2">
+                <div className="text-4xl">🛵</div>
+                <p className="font-bold text-slate-700 text-sm">No tienes entregas pendientes en este momento</p>
+                <p className="text-xs">Tu proveedor te notificará cuando te asigne una nueva ruta de despacho.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.driver_deliveries.map((del) => (
+                  <div
+                    key={del.id}
+                    className="rounded-2xl border-2 border-slate-200 bg-slate-50/70 p-4 space-y-3 hover:border-sky-300 transition"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black font-mono text-slate-900">{del.order_code}</span>
+                      <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-[10px] font-extrabold text-sky-800">
+                        {del.status.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">{del.restaurant_name}</h3>
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                        <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="truncate">{del.delivery_address}</span>
+                      </p>
+                    </div>
+
+                    {del.confirmation_code && (
+                      <div className="rounded-xl bg-amber-50 border-2 border-amber-300 p-3 text-center space-y-1">
+                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
+                          🔑 Llave de Seguridad para el Gerente:
+                        </span>
+                        <div className="text-2xl font-black font-mono text-amber-950 tracking-widest bg-white py-1 px-4 rounded-xl border border-amber-200 inline-block shadow-xs">
+                          {del.confirmation_code}
+                        </div>
+                        <p className="text-[10px] text-amber-700">
+                          Entrégale este código al gerente cuando te reciba los insumos
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-200">
+                      <Link
+                        to="/logistica"
+                        className="text-xs font-bold text-sky-600 hover:underline inline-flex items-center gap-1"
+                      >
+                        <span>Abrir en mapa GPS</span>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </Link>
+
+                      <Link
+                        to={`/pedidos/${del.order_id}`}
+                        className="rounded-xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-300 transition"
+                      >
+                        Detalle del Pedido
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 1. Cabecera y Bienvenida Personalizada (No Domiciliarios) */}
+      {!isDomiciliario && (
+        <>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">
             Panel Principal {isSupplier ? 'del Proveedor' : isDomiciliario ? 'de Entregas' : 'Gastronómico'}
@@ -353,7 +593,20 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Botón Destacado Menú Tipo Hamburguesa (☰) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:scale-95 px-3.5 py-2 text-xs font-black shadow-sm transition cursor-pointer border border-slate-700"
+            title="Abrir menú tipo hamburguesa con todos los módulos"
+          >
+            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span>Menú Completo (☰)</span>
+          </button>
+
           {!isSupplier && !isDomiciliario && (
             <Link
               to="/catalogo"
@@ -377,6 +630,203 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Centro de Control Desplegable tipo Dashboard (Web & Móvil) */}
+      <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300">
+        {/* Barra superior interactiva del desplegable */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setDashboardMenuExpanded(!dashboardMenuExpanded)}
+              className="flex items-center gap-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 active:scale-95 px-3 py-1.5 text-xs font-bold transition cursor-pointer"
+              aria-expanded={dashboardMenuExpanded}
+            >
+              <span className="text-sm">📊</span>
+              <span>Menú Desplegable Dashboard</span>
+              <svg
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${dashboardMenuExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <span className="text-xs text-slate-300 hidden md:inline font-medium">
+              Panel interactivo con todos los módulos y accesos de tu rol.
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
+            <button
+              type="button"
+              onClick={() => setDashboardMenuExpanded(!dashboardMenuExpanded)}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 transition text-[11px] font-semibold whitespace-nowrap cursor-pointer"
+            >
+              {dashboardMenuExpanded ? '▲ Ocultar Módulos' : '▼ Ver Todos los Módulos'}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
+              className="px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 transition text-[11px] font-semibold whitespace-nowrap cursor-pointer"
+            >
+              ☰ Menú Lateral
+            </button>
+          </div>
+        </div>
+
+        {/* Panel Desplegable Expandible tipo Dashboard con Cards Interactivas */}
+        {dashboardMenuExpanded && (
+          <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Módulos del Sistema ({user?.role?.replace('_', ' ')})
+              </p>
+              <button
+                type="button"
+                onClick={() => setDashboardMenuExpanded(false)}
+                className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                ▲ Contraer Panel
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Catálogo */}
+              {!isDomiciliario && (
+                <Link
+                  to="/catalogo"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-brand flex items-center justify-center text-xl group-hover:scale-105 transition">
+                    📦
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-800 dark:text-white">Catálogo B2B</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Insumos mayoristas</p>
+                  </div>
+                </Link>
+              )}
+
+              {/* Pedidos */}
+              <Link
+                to="/pedidos"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
+              >
+                <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
+                  📋
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-800 dark:text-white">Gestión de Pedidos</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Despachos & entregas</p>
+                </div>
+              </Link>
+
+              {/* Inventario ROP (Restaurantes) */}
+              {isRestaurant && (
+                <Link
+                  to="/inventario"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
+                    🥦
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-800 dark:text-white">Inventario (ROP)</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Puntos de reorden</p>
+                  </div>
+                </Link>
+              )}
+
+              {/* Mapa GPS (Proveedores / Domiciliarios / Admin) */}
+              {(isSupplier || isDomiciliario || user?.role === 'admin') && (
+                <Link
+                  to="/logistica"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-sky-200/80 dark:border-sky-800/80 shadow-xs hover:border-sky-500 hover:shadow-sm transition group"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
+                    🗺️
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-sky-900 dark:text-sky-200">Mapa GPS en Vivo</p>
+                    <p className="text-[11px] text-sky-600 dark:text-sky-400">Telemetría de reparto</p>
+                  </div>
+                </Link>
+              )}
+
+              {/* Equipo / Flota */}
+              {(isRestaurant || isSupplier || user?.role === 'admin') && (
+                <Link
+                  to="/equipo"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-purple-200/80 dark:border-purple-800/80 shadow-xs hover:border-purple-500 hover:shadow-sm transition group"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
+                    👥
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-purple-900 dark:text-purple-200">
+                      {isSupplier ? 'Flota de Domiciliarios' : 'Equipo de Empleados'}
+                    </p>
+                    <p className="text-[11px] text-purple-600 dark:text-purple-400">
+                      {isSupplier ? 'Vehículos & conductores' : 'Personal operativo'}
+                    </p>
+                  </div>
+                </Link>
+              )}
+
+              {/* Directorio de Proveedores */}
+              <Link
+                to="/proveedores"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:border-brand hover:shadow-sm transition group"
+              >
+                <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center text-xl group-hover:scale-105 transition">
+                  🏢
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-800 dark:text-white">Proveedores</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Directorio B2B</p>
+                </div>
+              </Link>
+
+              {/* Planes Zupply */}
+              <Link
+                to="/planes"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-amber-200/80 dark:border-amber-800/80 shadow-xs hover:border-amber-500 hover:shadow-sm transition group"
+              >
+                <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
+                  💎
+                </div>
+                <div>
+                  <p className="text-xs font-black text-amber-900 dark:text-amber-200">Planes Zupply</p>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">Suscripción & funciones</p>
+                </div>
+              </Link>
+
+              {/* Zupply IA */}
+              <Link
+                to="/zupply-ia"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs hover:border-indigo-500 hover:shadow-sm transition group"
+              >
+                <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-105 transition">
+                  🤖
+                </div>
+                <div>
+                  <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Zupply Asistente IA</p>
+                  <p className="text-[11px] text-indigo-600 dark:text-indigo-400">Copiloto 24/7</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+        </>
+      )}
+
+      {/* Galería de Proveedores Recomendados (Solo para Restaurantes) */}
+      {!isDomiciliario && isRestaurant && (
+        <RecommendedSuppliersGallery />
+      )}
 
       {/* 2. Banner Tipo Galería de Fotos: Novedades de la App y Foro de Actualizaciones */}
       {data.announcements && data.announcements.length > 0 && activeAnnouncement && (
@@ -852,56 +1302,77 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Nuevos Restaurantes Emergentes (Clientes Potenciales B2B) */}
+            {/* Clientes Potenciales Basados en lo que Venden (Proveedores) */}
             <div className="lg:col-span-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                  <div className="h-7 w-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-800">Restaurantes Emergentes</h2>
-                    <p className="text-xs text-slate-400">Nuevos establecimientos registrados en Zupply</p>
+                    <h2 className="text-sm font-bold text-slate-800">Clientes Potenciales para tu Negocio</h2>
+                    <p className="text-xs text-slate-400">Restaurantes sugeridos según los insumos que tú vendes</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[10px] font-bold text-purple-800">
-                  Nuevas Oportunidades
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                  Alta Compatibilidad
                 </span>
               </div>
 
               <div className="space-y-3">
-                {data.emerging_restaurants.map((r) => (
-                  <div key={r.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 flex items-center justify-between gap-3 hover:bg-white transition">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-bold text-slate-900 truncate">{r.name}</p>
-                        <span className="rounded-full bg-slate-200 px-1.5 py-0.2 text-[9px] font-bold text-slate-700">
-                          {r.city || 'Santander'}
-                        </span>
+                {(data.prospective_restaurants || data.emerging_restaurants || []).map((r: any) => (
+                  <div key={r.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 hover:bg-white hover:border-emerald-300 transition space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-slate-900">{r.name}</p>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.2 text-[9px] font-bold text-emerald-800 uppercase">
+                            {r.category || 'Gastronomía'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{r.address} · {r.city || 'Santander'}</p>
                       </div>
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">{r.address || 'Ubicación céntrica'}</p>
+
+                      {r.compatibility_score && (
+                        <span className="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-black shrink-0">
+                          {r.compatibility_score}% Match
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      {r.phone && (
+                    {r.potential_needs && Array.isArray(r.potential_needs) && (
+                      <div className="flex flex-wrap items-center gap-1 text-[10px] text-slate-600">
+                        <span className="font-semibold text-slate-400">Insumos clave:</span>
+                        {r.potential_needs.map((need: string, idx: number) => (
+                          <span key={idx} className="rounded bg-white px-1.5 py-0.5 border border-slate-200 text-slate-700">
+                            {need}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                      {r.phone ? (
                         <a
-                          href={`tel:${r.phone}`}
-                          className="rounded-lg bg-white border border-slate-200 p-1.5 text-slate-600 hover:text-brand hover:border-brand transition"
-                          title="Llamar restaurante"
+                          href={`https://wa.me/57${r.phone.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(r.name)},%20te%20escribo%20de%20Zupply%20para%20presentarte%20nuestro%20catálogo%20mayorista`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800"
                         >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
+                          <span>💬 Contactar por WhatsApp</span>
                         </a>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">Sin contacto telefónico</span>
                       )}
+
                       <button
                         type="button"
-                        onClick={() => navigate('/pedidos')}
-                        className="rounded-lg bg-brand px-2.5 py-1 text-xs font-bold text-white hover:bg-brand-dark transition shadow-2xs"
+                        onClick={() => navigate('/catalogo')}
+                        className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-700 transition shadow-2xs"
                       >
-                        Cotizar
+                        Ofrecer Catálogo
                       </button>
                     </div>
                   </div>

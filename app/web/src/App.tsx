@@ -4,6 +4,7 @@ import { useNotifications } from './context/NotificationContext';
 import Navbar from './components/Navbar';
 import SideCart from './components/SideCart';
 import Toasts from './components/Toasts';
+import AiFloatingWidget from './components/AiFloatingWidget';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -38,7 +39,7 @@ export default function App() {
   const { items } = useNotifications();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
       {user && <Navbar />}
       <main className={user ? 'mx-auto max-w-7xl px-4 py-6 pb-24 lg:pb-6' : ''}>
         <Routes>
@@ -62,6 +63,7 @@ export default function App() {
       </main>
       {items.length > 0 && <Toasts />}
       <SideCart />
+      {user && <AiFloatingWidget />}
     </div>
   );
 }

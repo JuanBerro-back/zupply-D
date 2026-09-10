@@ -26,9 +26,21 @@ function buildPayload(row: {
   };
 }
 
+// Asegurar columnas de categoría culinaria y planes de suscripción
+query(`
+  ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS category VARCHAR(100);
+  ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(50) DEFAULT 'basico';
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(50) DEFAULT 'basico';
+  UPDATE restaurants SET category = 'BBQ & Parrilla' WHERE id = 1 AND category IS NULL;
+  UPDATE restaurants SET category = 'Latino & Comida Típica' WHERE id = 2 AND category IS NULL;
+  UPDATE restaurants SET category = 'BBQ & Parrilla' WHERE id = 3 AND category IS NULL;
+  UPDATE restaurants SET category = 'Latino & Comida Típica' WHERE id = 4 AND category IS NULL;
+  UPDATE restaurants SET category = 'Hamburguesas & Fast Food' WHERE id = 5 AND category IS NULL;
+`).catch(() => undefined);
+
 router.post('/register', async (req, res, next) => {
   try {
-    const { username, password, name, email, phone, type } = req.body;
+    const { username, password, name, email, phone, type, category } = req.body;
     if (!username || !password || !name) {
       return res.status(400).json({ error: 'username, password y name son requeridos' });
     }
@@ -46,14 +58,14 @@ router.post('/register', async (req, res, next) => {
 
     if (type === 'proveedor') {
       const supplier = await query(
-        `INSERT INTO suppliers (name, email, phone) VALUES ($1, $2, $3) RETURNING id`,
-        [name, email, phone]
+        `INSERT INTO suppliers (name, email, phone, category) VALUES ($1, $2, $3, $4) RETURNING id`,
+        [name, email, phone, category || 'Abarrotes y General']
       );
       supplierId = supplier.rows[0].id;
     } else {
       const restaurant = await query(
-        `INSERT INTO restaurants (name, email, phone) VALUES ($1, $2, $3) RETURNING id`,
-        [name, email, phone]
+        `INSERT INTO restaurants (name, email, phone, category) VALUES ($1, $2, $3, $4) RETURNING id`,
+        [name, email, phone, category || 'Latino & Comida Típica']
       );
       restaurantId = restaurant.rows[0].id;
       await query(
@@ -127,14 +139,32 @@ router.get('/tenant-info', authRequired, async (req, res, next) => {
   try {
     const user = req.user!;
     if (user.restaurant_id) {
-      const r = await query('SELECT id, name, logo_url FROM restaurants WHERE id = $1', [user.restaurant_id]);
+      const r = await query('SELECT id, name, logo_url, category, COALESCE(subscription_plan, \'medio\') AS subscription_plan FROM restaurants WHERE id = $1', [user.restaurant_id]);
       if (r.rowCount) return res.json({ type: 'restaurant', ...r.rows[0] });
     }
     if (user.supplier_id) {
-      const s = await query('SELECT id, name, logo_url FROM suppliers WHERE id = $1', [user.supplier_id]);
-      if (s.rowCount) return res.json({ type: 'supplier', ...s.rows[0] });
+      const s = await query('SELECT id, name, logo_url, category FROM suppliers WHERE id = $1', [user.supplier_id]);
+      if (s.rowCount) return res.json({ type: 'supplier', subscription_plan: 'premium', ...s.rows[0] });
     }
-    res.json({ type: 'platform', name: 'Zupply' });
+    res.json({ type: 'platform', name: 'Zupply', subscription_plan: 'premium' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/subscription-plan', authRequired, async (req, res, next) => {
+  try {
+    const user = req.user!;
+    const { plan } = req.body;
+    if (!['basico', 'medio', 'premium'].includes(plan)) {
+      return res.status(400).json({ error: 'Plan inválido. Opciones: basico, medio, premium' });
+    }
+    if (user.restaurant_id) {
+      await query('UPDATE restaurants SET subscription_plan = $1 WHERE id = $2', [plan, user.restaurant_id]);
+    }
+    await query('UPDATE users SET subscription_plan = $1 WHERE id = $2', [plan, user.id]);
+    emitToUser('notification:created', user.id, { message: `Plan cambiado a: ${plan.toUpperCase()}` });
+    res.json({ ok: true, plan });
   } catch (err) {
     next(err);
   }

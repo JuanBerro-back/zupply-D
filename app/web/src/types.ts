@@ -231,4 +231,6 @@ export interface TenantInfo {
   id?: number;
   name: string;
   logo_url?: string;
+  category?: string;
+  subscription_plan?: string;
 }

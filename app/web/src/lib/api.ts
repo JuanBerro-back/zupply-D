@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+
 const TOKEN_KEY = 'zupply_token';
 const SERVER_URL_KEY = 'zupply_server_url';
 export const DEFAULT_RENDER_URL = 'https://zupply-d.onrender.com';
@@ -6,10 +8,8 @@ export function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
   return (
     window.location.protocol === 'capacitor:' ||
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    // @ts-ignore
-    Boolean(window?.Capacitor?.isNativePlatform?.())
+    Capacitor.isNativePlatform() ||
+    Boolean((window as any)?.Capacitor?.isNativePlatform?.())
   );
 }
 

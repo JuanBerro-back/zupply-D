@@ -21,14 +21,11 @@ interface TeamUser {
 }
 
 const RESTAURANT_ROLES = [
-  { id: 5, name: 'domiciliario', label: 'Domiciliario / Conductor' },
-  { id: 2, name: 'gerente', label: 'Gerente de Restaurante' },
   { id: 3, name: 'empleado', label: 'Empleado Operativo' },
 ];
 
 const SUPPLIER_ROLES = [
   { id: 5, name: 'domiciliario', label: 'Domiciliario / Conductor de Entregas' },
-  { id: 4, name: 'proveedor_admin', label: 'Administrador Proveedor' },
 ];
 
 function getVehicleBadge(type?: string | null, plate?: string | null) {
@@ -80,13 +77,17 @@ export default function TeamManagement() {
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<TeamUser | null>(null);
+
+  const isSupplier = user?.role === 'proveedor_admin';
+  const defaultRoleId = isSupplier ? 5 : 3;
+
   const [form, setForm] = useState({
     username: '',
     password: '',
     name: '',
     email: '',
     phone: '',
-    role_id: 5,
+    role_id: defaultRoleId,
     vehicle_type: 'ninguno',
     vehicle_plate: '',
   });
@@ -95,10 +96,9 @@ export default function TeamManagement() {
   const [loading, setLoading] = useState(true);
 
   // Filtros dinámicos
-  const [activeTab, setActiveTab] = useState<'todos' | 'domiciliarios' | 'gerencia' | 'empleados'>('todos');
+  const [activeTab, setActiveTab] = useState<'todos' | 'activos' | 'inactivos'>('todos');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isSupplier = user?.role === 'proveedor_admin';
   const availableRoles = isSupplier ? SUPPLIER_ROLES : RESTAURANT_ROLES;
 
   const loadUsers = async () => {
@@ -129,8 +129,8 @@ export default function TeamManagement() {
             email: form.email.trim() || null,
             phone: form.phone.trim() || null,
             role_id: Number(form.role_id),
-            vehicle_type: form.vehicle_type !== 'ninguno' ? form.vehicle_type : null,
-            vehicle_plate: form.vehicle_plate.trim().toUpperCase() || null,
+            vehicle_type: isSupplier && form.vehicle_type !== 'ninguno' ? form.vehicle_type : null,
+            vehicle_plate: isSupplier ? form.vehicle_plate.trim().toUpperCase() || null : null,
           }),
         });
         setSuccessMsg('Usuario actualizado correctamente');
@@ -144,11 +144,11 @@ export default function TeamManagement() {
             email: form.email.trim() || null,
             phone: form.phone.trim() || null,
             role_id: Number(form.role_id),
-            vehicle_type: form.vehicle_type !== 'ninguno' ? form.vehicle_type : null,
-            vehicle_plate: form.vehicle_plate.trim().toUpperCase() || null,
+            vehicle_type: isSupplier && form.vehicle_type !== 'ninguno' ? form.vehicle_type : null,
+            vehicle_plate: isSupplier ? form.vehicle_plate.trim().toUpperCase() || null : null,
           }),
         });
-        setSuccessMsg('Usuario creado exitosamente y disponible para asignación');
+        setSuccessMsg(isSupplier ? 'Domiciliario creado exitosamente y disponible para asignación' : 'Empleado creado exitosamente');
       }
       setShowForm(false);
       setEditingUser(null);
@@ -158,7 +158,7 @@ export default function TeamManagement() {
         name: '',
         email: '',
         phone: '',
-        role_id: 5,
+        role_id: defaultRoleId,
         vehicle_type: 'ninguno',
         vehicle_plate: '',
       });
@@ -176,7 +176,7 @@ export default function TeamManagement() {
       name: u.name,
       email: u.email || '',
       phone: u.phone || '',
-      role_id: u.role_id || 5,
+      role_id: u.role_id || defaultRoleId,
       vehicle_type: u.vehicle_type || 'ninguno',
       vehicle_plate: u.vehicle_plate || '',
     });
@@ -207,17 +207,11 @@ export default function TeamManagement() {
     }
   };
 
-  // Conteo por categorías
-  const domiciliarios = useMemo(() => users.filter((u) => u.role_id === 5 || u.role_name === 'domiciliario'), [users]);
-  const gerencia = useMemo(() => users.filter((u) => [1, 2, 4].includes(u.role_id) || ['admin', 'gerente', 'proveedor_admin'].includes(u.role_name)), [users]);
-  const empleados = useMemo(() => users.filter((u) => u.role_id === 3 || u.role_name === 'empleado'), [users]);
-
   // Filtrado según pestaña y búsqueda
   const filteredUsers = useMemo(() => {
     let list = users;
-    if (activeTab === 'domiciliarios') list = domiciliarios;
-    else if (activeTab === 'gerencia') list = gerencia;
-    else if (activeTab === 'empleados') list = empleados;
+    if (activeTab === 'activos') list = list.filter((u) => u.is_active);
+    else if (activeTab === 'inactivos') list = list.filter((u) => !u.is_active);
 
     if (!searchQuery.trim()) return list;
 
@@ -230,7 +224,7 @@ export default function TeamManagement() {
         (u.email && u.email.toLowerCase().includes(q)) ||
         (u.role_label && u.role_label.toLowerCase().includes(q))
     );
-  }, [users, activeTab, searchQuery, domiciliarios, gerencia, empleados]);
+  }, [users, activeTab, searchQuery]);
 
   const getRoleBadge = (roleId: number, roleName: string) => {
     if (roleId === 5 || roleName === 'domiciliario') {
@@ -284,10 +278,12 @@ export default function TeamManagement() {
             <svg className="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            <span>Gestión de Equipo y Domiciliarios</span>
+            <span>{isSupplier ? 'Gestión de Domiciliarios y Flota' : 'Gestión de Empleados del Restaurante'}</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Administra los usuarios de tu organización y asigna domiciliarios a las rutas de despacho.
+            {isSupplier
+              ? 'Administra tus conductores y repartidores para la entrega segura de pedidos a restaurantes.'
+              : 'Administra el personal operativo y de cocina de tu restaurante.'}
           </p>
         </div>
         <button
@@ -300,14 +296,14 @@ export default function TeamManagement() {
               name: '',
               email: '',
               phone: '',
-              role_id: 5,
+              role_id: defaultRoleId,
               vehicle_type: 'ninguno',
               vehicle_plate: '',
             });
           }}
           className="rounded-xl bg-brand px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:bg-brand-dark active:scale-95 transition flex items-center gap-1.5"
         >
-          <span>+</span> Crear Usuario / Domiciliario
+          <span>+</span> {isSupplier ? 'Crear Domiciliario' : 'Crear Empleado'}
         </button>
       </div>
 
@@ -350,37 +346,27 @@ export default function TeamManagement() {
             Todos ({users.length})
           </button>
           <button
-            onClick={() => setActiveTab('domiciliarios')}
+            onClick={() => setActiveTab('activos')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-              activeTab === 'domiciliarios'
-                ? 'bg-white text-sky-700 shadow-sm'
+              activeTab === 'activos'
+                ? 'bg-white text-emerald-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>Domiciliarios</span>
-            <span className="rounded-full bg-sky-100 px-1.5 py-0.2 text-[10px] text-sky-800 font-black">
-              {domiciliarios.length}
+            <span>Activos</span>
+            <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] text-emerald-800 font-black">
+              {users.filter(u => u.is_active).length}
             </span>
           </button>
           <button
-            onClick={() => setActiveTab('gerencia')}
+            onClick={() => setActiveTab('inactivos')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              activeTab === 'gerencia'
-                ? 'bg-white text-purple-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Gerencia ({gerencia.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('empleados')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              activeTab === 'empleados'
+              activeTab === 'inactivos'
                 ? 'bg-white text-slate-800 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Empleados ({empleados.length})
+            Inactivos ({users.filter(u => !u.is_active).length})
           </button>
         </div>
 
@@ -407,7 +393,11 @@ export default function TeamManagement() {
       {/* Modal de Crear / Editar Usuario */}
       {showForm && (
         <Modal
-          title={editingUser ? `Editar Usuario: ${editingUser.name}` : 'Crear Nuevo Usuario o Domiciliario'}
+          title={
+            editingUser
+              ? `Editar ${isSupplier ? 'Domiciliario' : 'Empleado'}: ${editingUser.name}`
+              : `Crear Nuevo ${isSupplier ? 'Domiciliario' : 'Empleado'}`
+          }
           onClose={() => {
             setShowForm(false);
             setEditingUser(null);
@@ -420,7 +410,7 @@ export default function TeamManagement() {
                 <input
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  placeholder="ej. carlos_repartidor"
+                  placeholder={isSupplier ? 'ej. carlos_repartidor' : 'ej. juan_cocina'}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   required
                 />
@@ -476,60 +466,66 @@ export default function TeamManagement() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Rol en la Organización *</label>
-              <select
-                value={form.role_id}
-                onChange={(e) => setForm({ ...form, role_id: Number(e.target.value) })}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
-              >
-                {availableRoles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Los usuarios con rol <b>Domiciliario</b> se mostrarán automáticamente en el mapa GPS para asignar pedidos.
-              </p>
-            </div>
+            {availableRoles.length > 1 ? (
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Rol en la Organización *</label>
+                <select
+                  value={form.role_id}
+                  onChange={(e) => setForm({ ...form, role_id: Number(e.target.value) })}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
+                >
+                  {availableRoles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200">
+                <span className="text-xs text-slate-500 font-semibold block">Rol Asignado:</span>
+                <span className="text-xs font-bold text-slate-800">{availableRoles[0]?.label}</span>
+              </div>
+            )}
 
-            {/* Asignación de Vehículo (Moto / Camión / Furgón) */}
-            <div className="pt-2.5 border-t border-slate-200 space-y-2">
-              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                <span>Asignación de Vehículo (Camión / Moto)</span>
-              </p>
+            {/* Asignación de Vehículo (Sólo para Proveedores / Domiciliarios) */}
+            {isSupplier && (
+              <div className="pt-2.5 border-t border-slate-200 space-y-2">
+                <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  <span>Asignación de Vehículo (Camión / Moto)</span>
+                </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-700">Tipo de Vehículo</label>
-                  <select
-                    value={form.vehicle_type}
-                    onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
-                  >
-                    <option value="ninguno">Sin vehículo asignado</option>
-                    <option value="moto">Moto (Motocicleta de reparto)</option>
-                    <option value="camion">Camión (Carga pesada)</option>
-                    <option value="furgon">Furgón (Carga seca / refrigerada)</option>
-                    <option value="camioneta">Camioneta (Vehículo utilitario)</option>
-                  </select>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">Tipo de Vehículo</label>
+                    <select
+                      value={form.vehicle_type}
+                      onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
+                    >
+                      <option value="ninguno">Sin vehículo asignado</option>
+                      <option value="moto">Moto (Motocicleta de reparto)</option>
+                      <option value="camion">Camión (Carga pesada)</option>
+                      <option value="furgon">Furgón (Carga seca / refrigerada)</option>
+                      <option value="camioneta">Camioneta (Vehículo utilitario)</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-700">Placa del Vehículo</label>
-                  <input
-                    value={form.vehicle_plate}
-                    onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
-                    placeholder="Ej: ABC-123"
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-brand/30"
-                  />
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">Placa del Vehículo</label>
+                    <input
+                      value={form.vehicle_plate}
+                      onChange={(e) => setForm({ ...form, vehicle_plate: e.target.value.toUpperCase() })}
+                      placeholder="Ej: ABC-123"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="flex gap-2 pt-3 border-t border-slate-200">
               <button

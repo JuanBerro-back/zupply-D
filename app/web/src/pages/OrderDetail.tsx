@@ -17,10 +17,37 @@ export default function OrderDetail() {
   const [deliveryModal, setDeliveryModal] = useState(false);
   const [drivers, setDrivers] = useState<{ id: number; name: string; username: string; phone?: string; role_label?: string; role_name?: string }[]>([]);
   const [vehicles, setVehicles] = useState<{ id: number; name: string; plate: string; type: string }[]>([]);
-  const [deliveryForm, setDeliveryForm] = useState({ vehicle_id: '', driver_id: '', scheduled_time: '' });
+  const [securityKeyInput, setSecurityKeyInput] = useState('');
+  const [verifyingKey, setVerifyingKey] = useState(false);
+  const [keyError, setKeyError] = useState('');
 
+  const completeWithKey = async (deliveryId: number) => {
+    if (!securityKeyInput.trim()) {
+      setKeyError('Por favor digita la llave de 4 dígitos proporcionada por el domiciliario');
+      return;
+    }
+    setVerifyingKey(true);
+    setKeyError('');
+    try {
+      await api(`/deliveries/${deliveryId}/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({ confirmation_code: securityKeyInput.trim() }),
+      });
+      push({ message: '¡Envío completado exitosamente con la llave de entrega!', at: new Date().toISOString() });
+      setSecurityKeyInput('');
+      load();
+    } catch (err) {
+      setKeyError((err as Error).message);
+    } finally {
+      setVerifyingKey(false);
+    }
+  };
+
+  const isGerente = user?.role === 'gerente';
+  const isDriver = user?.role === 'domiciliario';
   const isSupplier = user?.role === 'proveedor_admin';
-  const canManageDelivery = isSupplier || user?.role === 'admin' || user?.role === 'gerente';
+  const canManageDelivery = isSupplier || user?.role === 'admin';
+  const [deliveryForm, setDeliveryForm] = useState({ vehicle_id: '', driver_id: '', scheduled_time: '' });
 
   const load = () => {
     api<Order>(`/orders/${id}`).then(setOrder).catch(console.error);
@@ -139,61 +166,123 @@ export default function OrderDetail() {
           )}
         </div>
 
-        {/* Tarjeta destacada de seguimiento de entrega y domiciliario */}
+        {/* Tarjeta de seguimiento de entrega y domiciliario */}
         {latestDelivery && (
-          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100 pb-3">
+          <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50/60 p-5 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-100 dark:border-slate-700 pb-3">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                  </svg>
+                <div className="h-8 w-8 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold">
+                  🚚
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Seguimiento de Entrega GPS</h3>
-                  <p className="text-xs text-slate-500 font-mono">Código: {latestDelivery.delivery_code}</p>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">Información y Estado de Entrega</h3>
+                  <p className="text-xs text-slate-500 font-mono dark:text-slate-400">Guía: {latestDelivery.delivery_code}</p>
                 </div>
               </div>
-              <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-bold text-white capitalize shadow-sm">
+              <span className="rounded-full bg-sky-600 px-3 py-1 text-xs font-bold text-white capitalize shadow-xs">
                 {latestDelivery.status}
               </span>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 dark:text-slate-300">
               <p>
-                <b className="text-slate-900">Domiciliario:</b>{' '}
+                <b className="text-slate-900 dark:text-white">Ubicación de entrega:</b>{' '}
+                <span className="text-slate-600 dark:text-slate-300">
+                  {latestDelivery.delivery_address || order.delivery_address || 'Bucaramanga, Santander'}
+                </span>
+              </p>
+              <p>
+                <b className="text-slate-900 dark:text-white">Quién lo lleva (Domiciliario):</b>{' '}
                 {latestDelivery.driver_name ? (
-                  <span className="font-semibold text-blue-700">{latestDelivery.driver_name}</span>
+                  <span className="font-semibold text-sky-700 dark:text-sky-400">{latestDelivery.driver_name}</span>
                 ) : (
-                  <span className="text-amber-600 font-medium">Sin domiciliario asignado</span>
+                  <span className="text-amber-600 font-medium">Sin conductor asignado aún</span>
                 )}
               </p>
               {latestDelivery.driver_phone && (
-                <p><b className="text-slate-900">Teléfono:</b> {latestDelivery.driver_phone}</p>
+                <p><b className="text-slate-900 dark:text-white">Teléfono de contacto:</b> {latestDelivery.driver_phone}</p>
               )}
               {latestDelivery.vehicle_name && (
-                <p><b className="text-slate-900">Vehículo:</b> {latestDelivery.vehicle_name} ({latestDelivery.plate})</p>
-              )}
-              {latestDelivery.confirmation_code && (
-                <p>
-                  <b className="text-slate-900">Código de Confirmación:</b>{' '}
-                  <span className="font-mono font-bold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded shadow-sm">
-                    {latestDelivery.confirmation_code}
-                  </span>
-                </p>
+                <p><b className="text-slate-900 dark:text-white">Vehículo de despacho:</b> {latestDelivery.vehicle_name} ({latestDelivery.plate})</p>
               )}
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-blue-100">
-              <Link
-                to="/entregas"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <span>Ver en Mapa GPS en Tiempo Real</span>
-              </Link>
+            {/* Domiciliario: Vista destacada de la llave de entrega */}
+            {isDriver && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-amber-900 shadow-xs dark:bg-amber-950/40 dark:border-amber-700 dark:text-amber-200">
+                <p className="font-bold text-xs sm:text-sm flex items-center gap-2">
+                  <span>🔑</span>
+                  <span>
+                    Tu Llave de Entrega:{' '}
+                    <span className="font-mono text-base sm:text-lg font-black bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 px-2.5 py-0.5 rounded-lg shadow-sm">
+                      {latestDelivery.confirmation_code || '----'}
+                    </span>
+                  </span>
+                </p>
+                <p className="text-[11px] mt-1.5 text-amber-800 dark:text-amber-300 leading-relaxed">
+                  Entrega este código al gerente del restaurante al llegar para que complete la entrega en su sistema.
+                </p>
+              </div>
+            )}
+
+            {/* Gerente de Restaurante: Sección para validar con la llave recibida del domiciliario */}
+            {(isGerente || (user?.restaurant_id && !isSupplier && !isDriver)) && (
+              latestDelivery.status === 'entregado' ? (
+                <div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 flex items-center gap-2 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300">
+                  <span>✅</span>
+                  <span>Envío completado exitosamente a satisfacción con la llave de seguridad.</span>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/80 p-4 shadow-sm dark:bg-indigo-950/40 dark:border-indigo-800">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-2xl">🔑</span>
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                        Completar Envío con Llave de Seguridad
+                      </h4>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                        El domiciliario te entregará un código de 4 dígitos al momento de recibir el pedido. Ingrésalo a continuación para confirmar la recepción a satisfacción:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 mt-3">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={securityKeyInput}
+                      onChange={(e) => setSecurityKeyInput(e.target.value.trim())}
+                      placeholder="Código (Ej: 7421)"
+                      className="w-36 rounded-xl border border-indigo-300 bg-white px-3 py-2 text-center text-sm font-black font-mono tracking-widest text-indigo-900 shadow-xs focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:text-white dark:border-indigo-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => completeWithKey(latestDelivery.id)}
+                      disabled={verifyingKey || !securityKeyInput.trim()}
+                      className="rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold px-4 py-2 text-xs transition cursor-pointer disabled:opacity-40 shadow-sm"
+                    >
+                      {verifyingKey ? 'Validando...' : 'Completar Envío con esta Llave'}
+                    </button>
+                  </div>
+                  {keyError && <p className="mt-2 text-xs text-rose-600 dark:text-rose-400 font-semibold">{keyError}</p>}
+                </div>
+              )
+            )}
+
+            {/* Acciones de entrega (El gerente NO ve mapa GPS; solo domiciliario o proveedor) */}
+            <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-sky-100 dark:border-slate-700">
+              {!isGerente && (isDriver || isSupplier || user?.role === 'admin') && (
+                <Link
+                  to="/logistica"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-sky-700 transition"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <span>Ver en Mapa GPS en Tiempo Real</span>
+                </Link>
+              )}
+
               {canManageDelivery && (
                 <button
                   onClick={() => {
@@ -204,7 +293,7 @@ export default function OrderDetail() {
                     });
                     setDeliveryModal(true);
                   }}
-                  className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+                  className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"
                 >
                   ✏️ Cambiar Domiciliario / Vehículo
                 </button>

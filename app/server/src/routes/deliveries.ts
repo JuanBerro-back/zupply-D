@@ -358,43 +358,69 @@ router.patch('/:id/status', async (req, res, next) => {
   }
 });
 
-router.post('/:id/confirm', roleRequired('domiciliario'), async (req, res, next) => {
+router.post('/:id/confirm', roleRequired('domiciliario', 'gerente', 'admin'), async (req, res, next) => {
   try {
     const user = req.user!;
     const { confirmation_code } = req.body;
-    if (!confirmation_code) return res.status(400).json({ error: 'confirmation_code es requerido' });
+    if (!confirmation_code) return res.status(400).json({ error: 'La llave o código de confirmación es requerido' });
+
     const delivery = await query('SELECT * FROM deliveries WHERE id = $1', [req.params.id]);
     if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
     const del = delivery.rows[0];
-    if (del.driver_id !== user.id) {
+
+    // Si es domiciliario, debe ser su entrega asignada
+    if (user.role === 'domiciliario' && del.driver_id !== user.id) {
       return res.status(403).json({ error: 'Esta entrega no está asignada a ti' });
     }
+
+    // Si es gerente, debe ser de su restaurante
+    if ((user.role === 'gerente' || user.restaurant_id) && user.role !== 'admin') {
+      if (del.restaurant_id !== user.restaurant_id) {
+        return res.status(403).json({ error: 'No autorizado para confirmar entregas de otro restaurante' });
+      }
+    }
+
     if (del.status === 'entregado') {
-      return res.status(400).json({ error: 'Esta entrega ya fue confirmada' });
+      return res.status(400).json({ error: 'Esta entrega ya fue confirmada previamente' });
     }
-    if (del.confirmation_code !== String(confirmation_code)) {
-      return res.status(401).json({ error: 'Código de confirmación incorrecto' });
+
+    // Validación estricta del código / llave de entrega
+    if (String(del.confirmation_code).trim() !== String(confirmation_code).trim()) {
+      return res.status(401).json({ error: 'Llave de entrega incorrecta. Verifica el código con el domiciliario.' });
     }
+
     const result = await query(
       `UPDATE deliveries SET status = 'entregado', actual_delivery_time = CURRENT_TIMESTAMP,
          updated_at = CURRENT_TIMESTAMP
        WHERE id = $1 RETURNING *`,
       [req.params.id]
     );
+
     await query(
       `UPDATE orders SET status = 'entregado', delivered_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1`,
       [del.order_id]
     );
+
     const order = await query(
       `SELECT o.*, r.name AS restaurant_name, s.name AS supplier_name
        FROM orders o JOIN restaurants r ON r.id = o.restaurant_id JOIN suppliers s ON s.id = o.supplier_id
        WHERE o.id = $1`,
       [del.order_id]
     );
+
     if (order.rowCount) emitOrder('order:updated', order.rows[0]);
     emitOrder('delivery:status', { delivery_id: del.id, status: 'entregado', delivery_code: del.delivery_code });
-    res.json({ message: 'Entrega confirmada exitosamente', delivery: result.rows[0] });
+
+    // Notificar al domiciliario si fue el gerente quien ingresó la llave
+    if (del.driver_id) {
+      emitToUser('notification:created', del.driver_id, {
+        message: `El restaurante confirmó la entrega del pedido ${del.delivery_code} con tu llave`,
+        delivery_id: del.id,
+      });
+    }
+
+    res.json({ message: 'Envío completado exitosamente con la llave de entrega', delivery: result.rows[0] });
   } catch (err) {
     next(err);
   }
